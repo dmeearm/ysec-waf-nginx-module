@@ -141,31 +141,32 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_yy_sec_waf_args_parse(ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_http_request_t *r)
 {
-    ngx_str_t args;
+    ngx_str_t tmp_args;
 
-    args.len = (ngx_uint_t)(r->args.len);
-    args.data = ngx_pcalloc(r->pool, args.len + 1);
+    tmp_args.len = (ngx_uint_t)(r->args.len);
+    tmp_args.data = ngx_pcalloc(r->pool, tmp_args.len + 1);
 
     if (args.data == NULL) {
         return NGX_ERROR;
     }
 
-    (void) ngx_cpymem(args.data, r->args.data, args.len);
+    (void) ngx_cpymem(tmp_args.data, r->args.data, tmp_args.len);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] args=%V", &args);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] args=%V", &tmp_args);
 
     /* Decode the args of the request to compare with basic rules.
       TODO: take some more complex situations into account. */
-    ngx_yy_sec_waf_unescape(&args);
+    ngx_yy_sec_waf_unescape(&tmp_args);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] unescaped args=%V", &args);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] unescaped args=%V", &tmp_args);
 
     /* Simply match basic rule with the args.
       TODO: regx->low sec, string->medium sec, char->high sec. */
-    if (ngx_strnstr(args.data, (char*) cf->basic_rule.data, args.len)) {
+    if (ngx_strnstr(tmp_args.data, (char*) cf->basic_rule.data, tmp_args.len)) {
         ctx->matched = 1;
     }
 
+    ngx_pfree(r->pool, tmp_args.data);
     return NGX_OK;
 }
 
