@@ -146,7 +146,7 @@ ngx_http_yy_sec_waf_args_parse(ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_requ
     tmp_args.len = (ngx_uint_t)(r->args.len);
     tmp_args.data = ngx_pcalloc(r->pool, tmp_args.len + 1);
 
-    if (args.data == NULL) {
+    if (tmp_args.data == NULL) {
         return NGX_ERROR;
     }
 
