@@ -2,7 +2,14 @@ HowToUse
     //TODO
 
 Install    
+    apt-get install libpcre3 libpcre3-dev
+    apt-get install zlib1g zlib1g-dev
+    apt-get install openssl openssl-dev
+
     make with
+
+Test
+    prove -r t/
 
 About
 	nginx-http-yy-sec-waf-module
