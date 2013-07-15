@@ -14,20 +14,12 @@ static void ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r);
 static void * ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 
-typedef struct {
-    ngx_str_t    basic_rule;
-} ngx_http_yy_sec_waf_loc_conf_t;
-
-typedef struct {
-    ngx_flag_t    ready:1;
-    ngx_flag_t    matched:1;
-    ngx_flag_t    wait_for_body:1;
-} ngx_http_request_ctx_t;
+extern char * ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
     { ngx_string("basic_rule"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
-      ngx_conf_set_str_slot,
+      ngx_http_yy_sec_waf_read_conf,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_yy_sec_waf_loc_conf_t, basic_rule),
       NULL },
@@ -64,6 +56,7 @@ ngx_module_t  ngx_http_yy_sec_waf_module = {
     NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
+
 
 /*
 ** @description: This function is called to create the location configuration of yy sec waf.
@@ -141,13 +134,19 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_yy_sec_waf_args_parse(ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_http_request_t *r)
 {
-    ngx_str_t tmp_args;
+    int *captures, rc;
+    ngx_uint_t n;
+    ngx_str_t  tmp_args;
 
-    tmp_args.len = (ngx_uint_t)(r->args.len);
-    tmp_args.data = ngx_pcalloc(r->pool, tmp_args.len + 1);
+    tmp_args.len = r->args.len;
+    tmp_args.data = ngx_pcalloc(r->pool, tmp_args.len);
 
     if (tmp_args.data == NULL) {
         return NGX_ERROR;
+    }
+
+    if (cf->rule->str != NULL) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] str=%V", cf->rule->str);
     }
 
     (void) ngx_cpymem(tmp_args.data, r->args.data, tmp_args.len);
@@ -162,11 +161,43 @@ ngx_http_yy_sec_waf_args_parse(ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_requ
 
     /* Simply match basic rule with the args.
       TODO: regx->low sec, string->medium sec, char->high sec. */
-    if (ngx_strnstr(tmp_args.data, (char*) cf->basic_rule.data, tmp_args.len)) {
+    if (cf->rule->str != NULL) {
+        /* STR */
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] cf->rule->str=%V", cf->rule->str);
+
+        if (ngx_strnstr(tmp_args.data, (char*) cf->rule->str->data, tmp_args.len)) {
+            ctx->matched = 1;
+
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] rule matched");
+        }
+    } else if (cf->rule->rgc != NULL) {
+        /* REGEX */
+        n = (cf->rule->rgc->captures + 1) * 3;
+        
+        captures = ngx_palloc(r->pool, n*sizeof(int));
+
+        if (captures == NULL) {
+            return NGX_ERROR;
+        }
+        
+        rc = ngx_regex_exec(cf->rule->rgc->regex, &tmp_args, captures, n);
+        
+        if (rc < NGX_REGEX_NO_MATCHED) {
+            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                          ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
+                          rc, &tmp_args, &cf->rule->rgc->pattern);
+            return NGX_ERROR;
+        }
+        
+        if (rc == NGX_REGEX_NO_MATCHED) {
+            return NGX_DECLINED;
+        }
+
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] rule matched");
+
         ctx->matched = 1;
     }
 
-    ngx_pfree(r->pool, tmp_args.data);
     return NGX_OK;
 }
 
@@ -209,12 +240,11 @@ static ngx_int_t
 ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 {
     ngx_int_t                       rc;
-    ngx_http_yy_sec_waf_loc_conf_t *cf;
     ngx_http_request_ctx_t         *ctx;
 
-    cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] basic_rule=%V", &cf->basic_rule);
+    //ngx_http_yy_sec_waf_loc_conf_t *cf;
+    //cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
+    //ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] basic_rule=%V", &cf->basic_rule);
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
     if (ctx != NULL) {
@@ -289,10 +319,10 @@ static void
 ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
 {
     ngx_http_request_ctx_t    *ctx;
-    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
-    r->count--;
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
     ctx->ready = 1;
+    r->count--;
 
     if (ctx->wait_for_body) {
         ctx->wait_for_body = 0;

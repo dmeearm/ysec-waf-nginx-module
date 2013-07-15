@@ -16,7 +16,7 @@ __DATA__
 --- config
 default_type text/html;
 location / {
-    basic_rule <;
+    basic_rule str:<;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -28,10 +28,22 @@ GET /
 --- config
 default_type text/html;
 location / {
-    basic_rule <;
+    basic_rule str:<;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
+
+=== TEST 3: Regex
+--- config
+location / {
+    basic_rule regex:.script.;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="<script>alert(1)</script>"
+--- error_code: 403
+
