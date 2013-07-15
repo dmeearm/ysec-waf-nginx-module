@@ -47,3 +47,15 @@ location / {
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
 
+=== TEST 4: Multi Rules
+--- config
+location / {
+    basic_rule str:test;
+    basic_rule regex:.script.;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="test"
+--- error_code: 403
+

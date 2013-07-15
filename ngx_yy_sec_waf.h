@@ -24,8 +24,7 @@ typedef struct {
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
-    ngx_str_t    basic_rule;
-    ngx_http_yy_sec_waf_rule_t *rule;
+    ngx_array_t *arg_rules; /* ngx_http_yy_sec_waf_rule_t */
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {

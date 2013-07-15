@@ -108,28 +108,16 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
     ngx_http_yy_sec_waf_loc_conf_t  *p = conf;
 
     ngx_uint_t        i;
-    ngx_str_t        *field, *value;
-    ngx_http_yy_sec_waf_rule_t *rule_p;
-
-    field = (ngx_str_t *) (p + cmd->offset);
-
-    if (field->data) {
-        return "is duplicate";
-    }
+    ngx_str_t        *value;
+    ngx_http_yy_sec_waf_rule_t rule, *rule_p;
 
     value = cf->args->elts;
-
-    *field = value[1];
-
-    rule_p = ngx_pcalloc(cf->pool, sizeof(ngx_http_yy_sec_waf_rule_t));
-
-    if (!rule_p)
-        return NGX_CONF_ERROR;
+    ngx_memset(&rule, 0, sizeof(ngx_http_yy_sec_waf_rule_t));
 
     for (i = 0; rule_parser[i].parse; i++) {
-        if (!ngx_strncmp(field->data, rule_parser[i].type, strlen(rule_parser[i].type))) {
-            if (rule_parser[i].parse(cf, field, rule_p) != NGX_CONF_OK) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "[waf] Failed parsing '%s'", field);
+        if (!ngx_strncmp(value[1].data, rule_parser[i].type, strlen(rule_parser[i].type))) {
+            if (rule_parser[i].parse(cf, &value[1], &rule) != NGX_CONF_OK) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "[waf] Failed parsing '%s'", value[1].data);
                 return NGX_CONF_ERROR;
             }
 
@@ -137,7 +125,21 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         }
     }
 
-    p->rule = rule_p;
+    if (( rule.str != NULL) || ( rule.rgc != NULL)) {
+        if (p->arg_rules == NULL) {
+            p->arg_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
+
+            if (p->arg_rules == NULL)
+                return NGX_CONF_ERROR;
+        }
+
+        rule_p = ngx_array_push(p->arg_rules);
+
+        if (rule_p == NULL)
+            return NGX_CONF_ERROR;
+
+        ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
+    }
 
     return NGX_CONF_OK;
 }
