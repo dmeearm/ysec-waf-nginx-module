@@ -169,7 +169,7 @@ ngx_http_yy_sec_waf_parse_msg(ngx_conf_t *cf,
 }
 
 /*
-** @description: This function is called to parse msg of yy sec waf.
+** @description: This function is called to parse pos of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *tmp
 ** @para: ngx_http_yy_sec_waf_rule_t *rule
