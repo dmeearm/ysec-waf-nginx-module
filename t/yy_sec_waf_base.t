@@ -58,4 +58,6 @@ location / {
 --- request
 GET /?a="test"
 --- error_code: 403
-
+--- request
+GET /?a="<script>alert(1)</script>"
+--- error_code: 403
