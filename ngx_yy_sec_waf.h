@@ -21,6 +21,13 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 typedef struct {
     ngx_str_t *str;
     ngx_regex_compile_t *rgc;
+    ngx_str_t *gids;
+    ngx_str_t *msg;
+    ngx_flag_t body:1;
+    ngx_flag_t header:1;
+    ngx_flag_t url:1;
+    ngx_flag_t args:1;
+    ngx_flag_t cookie:1;
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {

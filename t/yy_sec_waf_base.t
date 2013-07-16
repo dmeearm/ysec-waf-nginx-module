@@ -16,7 +16,7 @@ __DATA__
 --- config
 default_type text/html;
 location / {
-    basic_rule str:<;
+    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -28,7 +28,7 @@ GET /
 --- config
 default_type text/html;
 location / {
-    basic_rule str:<;
+    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -39,7 +39,7 @@ GET /?a="<script>alert(1)</script>"
 === TEST 3: Regex
 --- config
 location / {
-    basic_rule regex:.script.;
+    basic_rule regex:.script. msg:test pos:BODY|ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -50,8 +50,8 @@ GET /?a="<script>alert(1)</script>"
 === TEST 4: Multi Rules
 --- config
 location / {
-    basic_rule str:test;
-    basic_rule regex:.script.;
+    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
+    basic_rule regex:.script. msg:test pos:BODY|ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -61,3 +61,4 @@ GET /?a="test"
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
+
