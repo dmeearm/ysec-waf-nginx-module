@@ -35,7 +35,7 @@ typedef struct {
 
 typedef struct {
     ngx_array_t *header_rules;/* ngx_http_yy_sec_waf_rule_t */
-    ngx_array_t *arg_rules; 
+    ngx_array_t *args_rules; 
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {

@@ -23,6 +23,9 @@ location / {
 --- request
 GET /
 --- error_code: 200
+--- request
+GET /?a="<"
+--- error_code: 403
 
 === TEST 2: DENY: Short Char Rule
 --- config
@@ -35,6 +38,9 @@ location / {
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
+--- request
+GET /?a="script>alert(1)/script>"
+--- error_code: 200
 
 === TEST 3: Regex
 --- config
@@ -46,6 +52,9 @@ location / {
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
+--- request
+GET /?a="<scrip>alert(1)</scipt>"
+--- error_code: 200
 
 === TEST 4: Multi Rules
 --- config
@@ -56,9 +65,9 @@ location / {
     index index.html index.htm;
 }
 --- request
-GET /?a="test"
---- error_code: 403
---- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
+--- request
+GET /?a="pass"
+--- error_code: 200
 
