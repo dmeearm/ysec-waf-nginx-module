@@ -24,7 +24,7 @@
 
 #define HEADER "HEADER"
 #define BODY "BODY"
-#define URL "URL"
+#define URI "URI"
 #define ARGS "ARGS"
 #define COOKIE "COOKIE"
 
@@ -33,21 +33,22 @@ extern ngx_module_t  ngx_http_yy_sec_waf_module;
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 typedef struct {
-    ngx_str_t *str;
-    ngx_regex_compile_t *rgc;
-    ngx_str_t *gids;
-    ngx_str_t *msg;
-
+    ngx_str_t *str; /* STR */
+    ngx_regex_compile_t *rgc; /* REG */
+    ngx_str_t *gids; /* GIDS */
+    ngx_str_t *msg; /* MSG */
+    /* POS */
     ngx_flag_t body:1;
     ngx_flag_t header:1;
-    ngx_flag_t url:1;
+    ngx_flag_t uri:1;
     ngx_flag_t args:1;
     ngx_flag_t cookie:1;
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
     ngx_array_t *header_rules;/* ngx_http_yy_sec_waf_rule_t */
-    ngx_array_t *args_rules; 
+    ngx_array_t *args_rules;
+    ngx_array_t *uri_rules;
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {

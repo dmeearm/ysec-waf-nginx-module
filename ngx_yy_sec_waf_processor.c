@@ -51,7 +51,9 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
             }
             
             rc = ngx_regex_exec(rule_p[i].rgc->regex, str, captures, n);
-            
+
+            ngx_pfree(r->pool, captures);
+
             if (rc < NGX_REGEX_NO_MATCHED) {
                 ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
                               ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
@@ -78,7 +80,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
 ** @para: ngx_conf_t *cf
 ** @para: ngx_http_request_ctx_t *ctx
 ** @para: ngx_http_request_t *r
-** @return: NGX_CONF_OK or NGX_ERROR if failed.
+** @return: void.
 */
 
 static void
@@ -111,11 +113,43 @@ ngx_http_yy_sec_waf_process_headers(ngx_http_request_t *r,
 }
 
 /*
+** @description: This function is called to process the uri of the request.
+** @para: ngx_conf_t *cf
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
+** @return: void.
+*/
+
+static void
+ngx_http_yy_sec_waf_process_uri(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
+{
+    ngx_str_t  tmp;
+
+    if (cf->uri_rules == NULL) {
+        return;
+    }
+
+    tmp.len = r->uri.len;
+    tmp.data = ngx_pcalloc(r->pool, tmp.len);
+
+    if (tmp.data == NULL) {
+        return;
+    }
+
+    (void)ngx_memcpy(tmp.data, r->uri.data, tmp.len);
+
+    ngx_http_yy_sec_waf_process_basic_rules(r, &tmp, cf->uri_rules, ctx);
+
+    ngx_pfree(r->pool, tmp.data);
+}
+
+/*
 ** @description: This function is called to process the args of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
 ** @para: ngx_http_request_ctx_t *ctx
-** @return: NGX_CONF_OK or NGX_ERROR if failed.
+** @return: void.
 */
 
 static void
@@ -135,11 +169,7 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
         return;
     }
 
-    (void) ngx_cpymem(tmp.data, r->args.data, tmp.len);
-
-    /* Decode the args of the request to compare with basic rules.
-      TODO: take some more complex situations into account. */
-    ngx_yy_sec_waf_unescape(&tmp);
+    (void)ngx_memcpy(tmp.data, r->args.data, tmp.len);
 
     ngx_http_yy_sec_waf_process_basic_rules(r, &tmp, cf->args_rules, ctx);
 
@@ -168,6 +198,9 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
 
     if (cf->header_rules != NULL)
         ngx_http_yy_sec_waf_process_headers(r, cf, ctx);
+
+    if (cf->uri_rules != NULL)
+        ngx_http_yy_sec_waf_process_uri(r, cf, ctx);
 
     if (cf->args_rules != NULL)
         ngx_http_yy_sec_waf_process_args(r, cf, ctx);

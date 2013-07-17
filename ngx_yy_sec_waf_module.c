@@ -202,6 +202,9 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         return NGX_DONE;
     }
 
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+				   "[waf] NGX_DECLINED.");
+
     return NGX_DECLINED;
 }
 

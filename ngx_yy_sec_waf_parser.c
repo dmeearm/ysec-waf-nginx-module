@@ -184,9 +184,9 @@ ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
             rule->header = 1;
             tmp_ptr += ngx_strlen(HEADER);
             continue;
-        } else if (!ngx_strncmp(tmp_ptr, URL, ngx_strlen(URL))) {
-            rule->url = 1;
-            tmp_ptr += ngx_strlen(URL);
+        } else if (!ngx_strncmp(tmp_ptr, URI, ngx_strlen(URI))) {
+            rule->uri = 1;
+            tmp_ptr += ngx_strlen(URI);
             continue;
         } else if (!ngx_strncmp(tmp_ptr, ARGS, ngx_strlen(ARGS))) {
             rule->args = 1;
@@ -269,6 +269,22 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 	
 		ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
 	}
+
+    if (rule.uri) {
+		if (p->uri_rules == NULL) {
+			p->uri_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
+	
+			if (p->uri_rules == NULL)
+				return NGX_CONF_ERROR;
+		}
+	
+		rule_p = ngx_array_push(p->uri_rules);
+	
+		if (rule_p == NULL)
+			return NGX_CONF_ERROR;
+	
+		ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
+    }
 
     return NGX_CONF_OK;
 }
