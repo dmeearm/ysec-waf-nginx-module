@@ -16,6 +16,18 @@
 #include <ngx_event.h>
 #include <ngx_string.h>
 
+#define STR "str:"
+#define REGEX "regex:"
+#define GIDS "gids:"
+#define MSG "msg:"
+#define POS "pos:"
+
+#define HEADER "HEADER"
+#define BODY "BODY"
+#define URL "URL"
+#define ARGS "ARGS"
+#define COOKIE "COOKIE"
+
 extern ngx_module_t  ngx_http_yy_sec_waf_module;
 
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);

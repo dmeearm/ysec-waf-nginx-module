@@ -9,7 +9,7 @@
 #include "ngx_yy_sec_waf.h"
 
 /*
-** @description: This function is called to process common rule of the request.
+** @description: This function is called to process basic rule of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
 ** @para: ngx_array_t *rules
@@ -18,10 +18,10 @@
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_process_rules(ngx_http_request_t *r,
+ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
 {
-    int *captures, rc;
+    int       *captures, rc;
     ngx_uint_t i, n;
     ngx_http_yy_sec_waf_rule_t *rule_p;
 
@@ -74,38 +74,80 @@ ngx_http_yy_sec_waf_process_rules(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to process the args of the request.
+** @description: This function is called to process the header of the request.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_http_request_ctx_t *ctx
 ** @para: ngx_http_request_t *r
 ** @return: NGX_CONF_OK or NGX_ERROR if failed.
 */
 
-static ngx_int_t
+static void
+ngx_http_yy_sec_waf_process_headers(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
+{
+    ngx_list_part_t *part;
+    ngx_table_elt_t *h;
+    ngx_uint_t       i;
+
+    if (cf->header_rules== NULL) {
+        return;
+    }
+
+    part = &r->headers_in.headers.part;
+    h = part->elts;
+
+    for (i = 0; ;i++) {
+        if (i >= part->nelts) {
+            if (part->next == NULL) 
+                break;
+
+            part = part->next;
+            h = part->elts;
+            i = 0;
+        }
+
+        ngx_http_yy_sec_waf_process_basic_rules(r, &h[i].value, cf->header_rules, ctx);
+	}
+}
+
+/*
+** @description: This function is called to process the args of the request.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
+** @para: ngx_http_request_ctx_t *ctx
+** @return: NGX_CONF_OK or NGX_ERROR if failed.
+*/
+
+static void
 ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
-    ngx_str_t  tmp_args;
+    ngx_str_t  tmp;
 
-    tmp_args.len = r->args.len;
-    tmp_args.data = ngx_pcalloc(r->pool, tmp_args.len);
-
-    if (tmp_args.data == NULL) {
-        return NGX_ERROR;
+    if (cf->args_rules == NULL) {
+        return;
     }
 
-    (void) ngx_cpymem(tmp_args.data, r->args.data, tmp_args.len);
+    tmp.len = r->args.len;
+    tmp.data = ngx_pcalloc(r->pool, tmp.len);
+
+    if (tmp.data == NULL) {
+        return;
+    }
+
+    (void) ngx_cpymem(tmp.data, r->args.data, tmp.len);
 
     /* Decode the args of the request to compare with basic rules.
       TODO: take some more complex situations into account. */
-    ngx_yy_sec_waf_unescape(&tmp_args);
+    ngx_yy_sec_waf_unescape(&tmp);
 
-    return ngx_http_yy_sec_waf_process_rules(r, &tmp_args, cf->args_rules, ctx);
+    ngx_http_yy_sec_waf_process_basic_rules(r, &tmp, cf->args_rules, ctx);
+
+    ngx_pfree(r->pool, tmp.data);
 }
 
 /*
 ** @description: This function is called to process the request.
-** @para: ngx_http_request_ctx_t *ctx
 ** @para: ngx_http_request_t *r
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
@@ -113,7 +155,6 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
 ngx_int_t
 ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
 {
-    int rc;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
     ngx_http_request_ctx_t         *ctx;
 
@@ -125,11 +166,11 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    /* Simply parse args.
-      TODO: parse header, uri and body later.*/
-    if ((rc = ngx_http_yy_sec_waf_process_args(r, cf, ctx)) != NGX_OK) {
-        return rc;
-    }
+    if (cf->header_rules != NULL)
+        ngx_http_yy_sec_waf_process_headers(r, cf, ctx);
+
+    if (cf->args_rules != NULL)
+        ngx_http_yy_sec_waf_process_args(r, cf, ctx);
 
     return NGX_OK;
 }

@@ -67,7 +67,34 @@ location / {
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
+--- config
+location / {
+    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
+    basic_rule regex:.script. msg:test pos:BODY|ARGS gids:XSS;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
 --- request
 GET /?a="pass"
 --- error_code: 200
+
+=== TEST 5: POS, Not Args
+--- config
+location / {
+    basic_rule str:test msg:test pos:HEADER gids:XSS;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="test"
+--- error_code: 200
+--- config
+location / {
+    basic_rule str:test msg:test pos:HEADER|ARGS gids:XSS;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="test"
+--- error_code: 403
 

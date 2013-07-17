@@ -8,20 +8,8 @@
 
 #include "ngx_yy_sec_waf.h"
 
-#define STR "str:"
-#define REGEX "regex:"
-#define GIDS "gids:"
-#define MSG "msg:"
-#define POS "pos:"
-
-#define HEADER "HEADER"
-#define BODY "BODY"
-#define URL "URL"
-#define ARGS "ARGS"
-#define COOKIE "COOKIE"
-
 typedef struct {
-    char *type;
+    const char *type;
     void *(*parse)(ngx_conf_t *, ngx_str_t *, ngx_http_yy_sec_waf_rule_t *);
 } ngx_http_yy_sec_waf_parser_t;
 
@@ -248,12 +236,11 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
                 break;
             }
         }
-    
     }
 
 	if (rule.header) {
 		if (p->header_rules == NULL) {
-			p->header_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
+			p->header_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
 	
 			if (p->header_rules == NULL)
 				return NGX_CONF_ERROR;
@@ -269,7 +256,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 
 	if (rule.args) {
 		if (p->args_rules == NULL) {
-			p->args_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
+			p->args_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
 	
 			if (p->args_rules == NULL)
 				return NGX_CONF_ERROR;
