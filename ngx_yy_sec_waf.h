@@ -16,6 +16,8 @@
 #include <ngx_event.h>
 #include <ngx_string.h>
 
+extern ngx_module_t  ngx_http_yy_sec_waf_module;
+
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 typedef struct {
@@ -23,6 +25,7 @@ typedef struct {
     ngx_regex_compile_t *rgc;
     ngx_str_t *gids;
     ngx_str_t *msg;
+
     ngx_flag_t body:1;
     ngx_flag_t header:1;
     ngx_flag_t url:1;
@@ -31,7 +34,8 @@ typedef struct {
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
-    ngx_array_t *arg_rules; /* ngx_http_yy_sec_waf_rule_t */
+    ngx_array_t *header_rules;/* ngx_http_yy_sec_waf_rule_t */
+    ngx_array_t *arg_rules; 
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {

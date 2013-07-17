@@ -251,7 +251,23 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
     
     }
 
-	if (( rule.str != NULL) || ( rule.rgc != NULL)) {
+	if (rule.header) {
+		if (p->header_rules == NULL) {
+			p->header_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
+	
+			if (p->header_rules == NULL)
+				return NGX_CONF_ERROR;
+		}
+	
+		rule_p = ngx_array_push(p->header_rules);
+	
+		if (rule_p == NULL)
+			return NGX_CONF_ERROR;
+	
+		ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
+	}
+
+	if (rule.args) {
 		if (p->arg_rules == NULL) {
 			p->arg_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
 	
