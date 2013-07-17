@@ -2,7 +2,7 @@
 ** @file: ngx_yy_sec_waf_processor.c
 ** @description: This is the rule processor for yy sec waf.
 ** @author: dw_liqi1<liqi1@yy.com>
-** @date: 2013.07.10
+** @date: 2013.07.17
 ** Copyright (C) YY, Inc.
 */
 
