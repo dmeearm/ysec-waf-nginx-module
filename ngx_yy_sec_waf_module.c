@@ -15,7 +15,7 @@ static void * ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 
 extern char * ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-extern ngx_int_t ngx_http_yy_sec_waf_data_parse(ngx_http_request_ctx_t *ctx, ngx_http_request_t *r);
+extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_ctx_t *ctx, ngx_http_request_t *r);
 
 static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
     { ngx_string("basic_rule"),
@@ -180,7 +180,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 	}
 
     if (ctx && ctx->ready) {
-        rc = ngx_http_yy_sec_waf_data_parse(ctx, r);
+        rc = ngx_http_yy_sec_waf_process_request(ctx, r);
 
         if (rc != NGX_OK) {
             ngx_http_finalize_request(r, NGX_ERROR);

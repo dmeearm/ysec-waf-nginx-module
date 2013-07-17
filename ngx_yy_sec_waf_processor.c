@@ -1,7 +1,15 @@
+/*
+** @file: ngx_yy_sec_waf_processor.c
+** @description: This is the rule processor for yy sec waf.
+** @author: dw_liqi1<liqi1@yy.com>
+** @date: 2013.07.10
+** Copyright (C) YY, Inc.
+*/
+
 #include "ngx_yy_sec_waf.h"
 
 /*
-** @description: This function is called to parse the args of the request.
+** @description: This function is called to process the args of the request.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_http_request_ctx_t *ctx
 ** @para: ngx_http_request_t *r
@@ -9,7 +17,7 @@
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_args_parse(ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_http_request_t *r)
+ngx_http_yy_sec_waf_process_args(ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_http_request_t *r)
 {
     int *captures, rc;
     ngx_uint_t i, n;
@@ -85,14 +93,14 @@ ngx_http_yy_sec_waf_args_parse(ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_requ
 }
 
 /*
-** @description: This function is called to parse the data of the request.
+** @description: This function is called to process the request.
 ** @para: ngx_http_request_ctx_t *ctx
 ** @para: ngx_http_request_t *r
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 ngx_int_t
-ngx_http_yy_sec_waf_data_parse(ngx_http_request_ctx_t *ctx, ngx_http_request_t *r)
+ngx_http_yy_sec_waf_process_request(ngx_http_request_ctx_t *ctx, ngx_http_request_t *r)
 {
     ngx_http_yy_sec_waf_loc_conf_t *cf;
 	
@@ -105,6 +113,6 @@ ngx_http_yy_sec_waf_data_parse(ngx_http_request_ctx_t *ctx, ngx_http_request_t *
 
     /* Simply parse args.
       TODO: parse header, uri and body later.*/
-    return ngx_http_yy_sec_waf_args_parse(cf, ctx, r);
+    return ngx_http_yy_sec_waf_process_args(cf, ctx, r);
 }
 
