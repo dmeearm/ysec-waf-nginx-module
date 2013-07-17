@@ -94,6 +94,8 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_yy_sec_waf_loc_conf_t *prev = parent;
     ngx_http_yy_sec_waf_loc_conf_t *conf = child;
 
+    ngx_conf_merge_ptr_value(conf->header_rules, prev->header_rules, NULL);
+    ngx_conf_merge_ptr_value(conf->uri_rules, prev->uri_rules, NULL);
     ngx_conf_merge_ptr_value(conf->args_rules, prev->args_rules, NULL);
 
     return NGX_CONF_OK;
