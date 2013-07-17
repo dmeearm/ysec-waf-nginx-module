@@ -15,7 +15,7 @@ __DATA__
 === TEST 1: Basic GET request
 --- config
 location / {
-    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -26,7 +26,7 @@ GET /
 === TEST 2: DENY: Short Char Rule
 --- config
 location / {
-    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -37,7 +37,7 @@ GET /?a="<script>alert(1)</script>"
 === TEST 3: Regex
 --- config
 location / {
-    basic_rule regex:.script. msg:test pos:BODY|ARGS gids:XSS;
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -49,7 +49,7 @@ GET /?a="<script>alert(1)</script>"
 --- config
 location / {
     basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
-    basic_rule regex:.script. msg:test pos:BODY|ARGS gids:XSS;
+    basic_rule regex:<script[^>]*> msg:test pos:BODY|ARGS gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -57,14 +57,14 @@ location / {
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
 
-=== TEST 5: POS, Not Args
+=== TEST 5: POS, Not in Args pos
 --- config
 location / {
-    basic_rule str:test msg:test pos:HEADER gids:XSS;
+    basic_rule regex:<script[^>]*> msg:test pos:BODY gids:XSS;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
 --- request
-GET /?a="test"
+GET /?a="<script>alert(1)</script>"
 --- error_code: 200
 
