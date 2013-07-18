@@ -91,10 +91,6 @@ ngx_http_yy_sec_waf_process_headers(ngx_http_request_t *r,
     ngx_table_elt_t *h;
     ngx_uint_t       i;
 
-    if (cf->header_rules== NULL) {
-        return;
-    }
-
     part = &r->headers_in.headers.part;
     h = part->elts;
 
@@ -126,10 +122,6 @@ ngx_http_yy_sec_waf_process_uri(ngx_http_request_t *r,
 {
     ngx_str_t  tmp;
 
-    if (cf->uri_rules == NULL) {
-        return;
-    }
-
     tmp.len = r->uri.len;
     tmp.data = ngx_pcalloc(r->pool, tmp.len);
 
@@ -158,16 +150,14 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
 {
     ngx_str_t  tmp;
 
-    if (cf->args_rules == NULL) {
+    if (r->args.len == 0)
         return;
-    }
 
     tmp.len = r->args.len;
     tmp.data = ngx_pcalloc(r->pool, tmp.len);
 
-    if (tmp.data == NULL) {
+    if (tmp.data == NULL)
         return;
-    }
 
     (void)ngx_memcpy(tmp.data, r->args.data, tmp.len);
 
@@ -198,6 +188,11 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
+    if (ctx == NULL) {
+        ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_get_module_ctx failed.");
+        return NGX_ERROR;
+    }
+
     if (cf->header_rules != NULL)
         ngx_http_yy_sec_waf_process_headers(r, cf, ctx);
 
@@ -206,6 +201,8 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
 
     if (cf->args_rules != NULL)
         ngx_http_yy_sec_waf_process_args(r, cf, ctx);
+
+    /* TODO: process body, need test case for this situation. */
 
     return NGX_OK;
 }

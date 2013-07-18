@@ -185,7 +185,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         rc = ngx_http_yy_sec_waf_process_request(r);
 
         if (rc != NGX_OK) {
-            ngx_http_finalize_request(r, NGX_ERROR);
+            ngx_http_finalize_request(r, rc);
             return rc;
         }
 
