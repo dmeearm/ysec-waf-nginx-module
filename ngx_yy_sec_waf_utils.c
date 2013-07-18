@@ -172,15 +172,18 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str) {
     src = str->data;
         
     bad = ngx_yy_sec_waf_unescape_uri(&src, &dst,
-  			   str->len, 0);      
+  			   str->len, 0);
     str->len =  src - str->data;
+
     /* tmp hack fix, avoid %00 & co (null byte) encoding :p */
-    for (i = 0; i < str->len; i++)
+    for (i = 0; i < str->len; i++) {
         if (str->data[i] == 0x0)
         {
     	    nullbytes++;
     	    str->data[i] = '0';
         }
+    }
+
     return (nullbytes+bad);
 }
 

@@ -171,6 +171,8 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
 
     (void)ngx_memcpy(tmp.data, r->args.data, tmp.len);
 
+    ngx_yy_sec_waf_unescape(&tmp);
+
     ngx_http_yy_sec_waf_process_basic_rules(r, &tmp, cf->args_rules, ctx);
 
     ngx_pfree(r->pool, tmp.data);
