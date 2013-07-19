@@ -49,7 +49,7 @@ typedef struct {
     ngx_flag_t uri:1;
     ngx_flag_t args:1;
     ngx_flag_t cookie:1;
-    /* blocking flags*/
+    /* LEVEL*/
     ngx_flag_t    log:1;
     ngx_flag_t    block:1;
 } ngx_http_yy_sec_waf_rule_t;
@@ -69,6 +69,7 @@ typedef struct {
     ngx_flag_t    wait_for_body:1;
 
     ngx_flag_t    matched:1;
+    ngx_str_t    *matched_rule;
 } ngx_http_request_ctx_t;
 
 

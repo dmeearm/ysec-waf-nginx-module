@@ -191,16 +191,16 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
         if (ctx->matched) {
     		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-    					   "[waf] this rule is matched.");
-            /* Simply discard and finalize the request.
-                   TODO: redirect to other pages, such as 404.html. */
+    					   "[waf] rule(%V) matched.", ctx->matched_rule);
             if (ctx->log && !ctx->block) {
                 return NGX_DECLINED;
         	}
-    
+
+            /* Simply discard and finalize the request.
+                   TODO: redirect to other pages, such as 404.html. */
     		ngx_http_discard_request_body(r);
     		ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
-            return NGX_DONE;
+            return NGX_OK;
         }
     }
 

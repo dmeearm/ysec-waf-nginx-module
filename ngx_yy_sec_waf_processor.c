@@ -33,9 +33,8 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
         if (rule_p[i].str != NULL) {
             /* STR */
             if (ngx_strnstr(str->data, (char*) rule_p[i].str->data, str->len)) {
-    			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] rule matched");
-
                 ctx->matched = 1;
+                ctx->matched_rule = rule_p[i].str;
                 break;
             }
         }
@@ -65,9 +64,8 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
                 return NGX_DECLINED;
             }
     
-    		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] rule matched");
-    
             ctx->matched = 1;
+            ctx->matched_rule = &rule_p[i].rgc->pattern;
             break;
         }
     }
