@@ -21,12 +21,18 @@
 #define GIDS "gids:"
 #define MSG "msg:"
 #define POS "pos:"
+#define LEVEL "lev:"
 
+/* POS */
 #define HEADER "HEADER"
 #define BODY "BODY"
 #define URI "URI"
 #define ARGS "ARGS"
 #define COOKIE "COOKIE"
+
+/* LEV */
+#define LOG "LOG"
+#define BLOCK "BLOCK"
 
 extern ngx_module_t  ngx_http_yy_sec_waf_module;
 
@@ -43,6 +49,9 @@ typedef struct {
     ngx_flag_t uri:1;
     ngx_flag_t args:1;
     ngx_flag_t cookie:1;
+    /* blocking flags*/
+    ngx_flag_t    log:1;
+    ngx_flag_t    block:1;
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
@@ -52,9 +61,14 @@ typedef struct {
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {
+    /* blocking flags*/
+    ngx_flag_t    log:1;
+    ngx_flag_t    block:1;
+    /* state */
     ngx_flag_t    ready:1;
-    ngx_flag_t    matched:1;
     ngx_flag_t    wait_for_body:1;
+
+    ngx_flag_t    matched:1;
 } ngx_http_request_ctx_t;
 
 

@@ -189,23 +189,20 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             return rc;
         }
 
-    	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-    				   "[waf] this rule %s matched.", ctx->matched? "is": "isn't");
+        if (ctx->matched) {
+    		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+    					   "[waf] this rule is matched.");
+            /* Simply discard and finalize the request.
+                   TODO: redirect to other pages, such as 404.html. */
+            if (ctx->log && !ctx->block) {
+                return NGX_DECLINED;
+        	}
     
-        if (!ctx->matched) {
-    		return NGX_DECLINED;
+    		ngx_http_discard_request_body(r);
+    		ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
+            return NGX_DONE;
         }
-
-        /* Simply discard and finalize the request.
-             TODO: redirect to other pages, such as 404.html. */
-        ngx_http_discard_request_body(r);
-        ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
-
-        return NGX_DONE;
     }
-
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-				   "[waf] NGX_DECLINED.");
 
     return NGX_DECLINED;
 }

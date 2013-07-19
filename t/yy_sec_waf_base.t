@@ -68,3 +68,35 @@ location / {
 GET /?a="<script>alert(1)</script>"
 --- error_code: 200
 
+=== TEST 6: LEV, log
+--- config
+location / {
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="<script>alert(1)</script>"
+--- error_code: 200
+
+=== TEST 7: LEV, block
+--- config
+location / {
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:BLOCK;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="<script>alert(1)</script>"
+--- error_code: 403
+
+=== TEST 7: LEV, log and block
+--- config
+location / {
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="<script>alert(1)</script>"
+--- error_code: 403

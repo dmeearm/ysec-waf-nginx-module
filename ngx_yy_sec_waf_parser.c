@@ -23,6 +23,9 @@ static void *ngx_http_yy_sec_waf_parse_msg(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
+static void *ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
+
 
 static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
     { STR, ngx_http_yy_sec_waf_parse_str},
@@ -30,6 +33,7 @@ static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
     { GIDS, ngx_http_yy_sec_waf_parse_gids},
     { MSG, ngx_http_yy_sec_waf_parse_msg},
     { POS, ngx_http_yy_sec_waf_parse_pos},
+    { LEVEL, ngx_http_yy_sec_waf_parse_level},
     { NULL, NULL}
 };
 
@@ -195,6 +199,42 @@ ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
         } else if (!ngx_strncmp(tmp_ptr, COOKIE, ngx_strlen(COOKIE))) {
             rule->cookie = 1;
             tmp_ptr += ngx_strlen(COOKIE);
+            continue;
+        } else {
+            return (NGX_CONF_ERROR);
+        }
+    }
+
+    return NGX_CONF_OK;
+}
+
+/*
+** @description: This function is called to parse level of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
+{
+    char *tmp_ptr;
+    
+    tmp_ptr = (char*)tmp->data + ngx_strlen(LEVEL);
+
+    while (*tmp_ptr) {
+        if (tmp_ptr[0] == '|')
+            tmp_ptr++;
+        /* match global zones */
+        if (!ngx_strncmp(tmp_ptr, BLOCK, ngx_strlen(BLOCK))) {
+            rule->block = 1;
+            tmp_ptr += ngx_strlen(BLOCK);
+            continue;
+        } else if (!ngx_strncmp(tmp_ptr, LOG, ngx_strlen(LOG))) {
+            rule->log = 1;
+            tmp_ptr += ngx_strlen(LOG);
             continue;
         } else {
             return (NGX_CONF_ERROR);

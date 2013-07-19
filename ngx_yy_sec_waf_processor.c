@@ -14,7 +14,7 @@
 ** @para: ngx_str_t *str
 ** @para: ngx_array_t *rules
 ** @para: ngx_http_request_ctx_t *ctx
-** @return: NGX_CONF_OK or NGX_ERROR if failed.
+** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 static ngx_int_t
@@ -71,6 +71,11 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
             break;
         }
     }
+
+    if (rule_p->block)
+        ctx->block = 1;
+    if (rule_p->log)
+        ctx->log = 1;
 
     return NGX_OK;
 }
@@ -196,10 +201,10 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
     if (cf->header_rules != NULL)
         ngx_http_yy_sec_waf_process_headers(r, cf, ctx);
 
-    if (cf->uri_rules != NULL)
+    if (!ctx->matched && cf->uri_rules != NULL)
         ngx_http_yy_sec_waf_process_uri(r, cf, ctx);
 
-    if (cf->args_rules != NULL)
+    if (!ctx->matched && cf->args_rules != NULL)
         ngx_http_yy_sec_waf_process_args(r, cf, ctx);
 
     /* TODO: process body, need test case for this situation. */
