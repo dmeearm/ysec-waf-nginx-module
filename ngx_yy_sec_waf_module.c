@@ -200,7 +200,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
                    TODO: redirect to other pages, such as 404.html. */
     		ngx_http_discard_request_body(r);
     		ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
-            return NGX_OK;
+            return NGX_DONE;
         }
     }
 
