@@ -61,7 +61,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
             }
             
             if (rc == NGX_REGEX_NO_MATCHED) {
-                return NGX_DECLINED;
+                continue;
             }
     
             ctx->matched = 1;
