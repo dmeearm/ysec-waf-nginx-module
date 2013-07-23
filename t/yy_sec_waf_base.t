@@ -100,3 +100,16 @@ location / {
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 403
+
+=== TEST 8: yy_sec_waf flag
+--- config
+location / {
+    yy_sec_waf off;
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+}
+--- request
+GET /?a="<script>alert(1)</script>"
+--- error_code: 200
+
