@@ -208,7 +208,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         }
 
         if (ctx->matched) {
-    		ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
+    		ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
     					   "[waf] rule(%V) matched.", ctx->matched_rule);
             if (ctx->log && !ctx->block) {
                 return NGX_DECLINED;

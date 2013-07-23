@@ -76,9 +76,9 @@ ngx_yy_sec_waf_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t 
             }
 
             /* the invalid quoted character */
-	    bad++;
+            bad++;
             state = sw_usual;
-	    *d++ = '%';
+            *d++ = '%';
             *d++ = ch;
             break;
 
@@ -138,14 +138,13 @@ ngx_yy_sec_waf_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t 
 
                 break;
             }
-	    /* the invalid quoted character */
-	    /* as it happened in the 2nd part of quoted character, 
-	       we need to restore the decoded char as well. */
-	    *d++ = '%';
-	    *d++ = (0 >= decoded && decoded < 10) ? decoded + '0' : 
-	      decoded - 10 + 'a';
-	    *d++ = ch;
-	    bad++;
+            /* the invalid quoted character */
+            /* as it happened in the 2nd part of quoted character, 
+                        we need to restore the decoded char as well. */
+            *d++ = '%';
+            *d++ = (0 >= decoded && decoded < 10)? (decoded + '0'): (decoded - 10 + 'a');
+            *d++ = ch;
+            bad++;
             break;
         }
     }
@@ -164,26 +163,26 @@ done:
 ** @return: uint (nullbytes+bad)
 */
 
-int ngx_yy_sec_waf_unescape(ngx_str_t *str) {
+int
+ngx_yy_sec_waf_unescape(ngx_str_t *str) {
     u_char *dst, *src;
     u_int nullbytes = 0, bad = 0, i;
     
     dst = str->data;
     src = str->data;
         
-    bad = ngx_yy_sec_waf_unescape_uri(&src, &dst,
-  			   str->len, 0);
-    str->len =  src - str->data;
+    bad = ngx_yy_sec_waf_unescape_uri(&src, &dst, str->len, 0);
+
+    str->len = src - str->data;
 
     /* tmp hack fix, avoid %00 & co (null byte) encoding :p */
     for (i = 0; i < str->len; i++) {
-        if (str->data[i] == 0x0)
-        {
+        if (str->data[i] == 0x0) {
     	    nullbytes++;
     	    str->data[i] = '0';
         }
     }
 
-    return (nullbytes+bad);
+    return (nullbytes + bad);
 }
 

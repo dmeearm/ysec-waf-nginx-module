@@ -30,15 +30,6 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     for (i = 0; i < rules->nelts; i++) {
         /* Simply match basic rule with the args.
              TODO: regx->low sec, string->medium sec, char->high sec. */
-        if (rule_p[i].str != NULL) {
-            /* STR */
-            if (ngx_strnstr(str->data, (char*) rule_p[i].str->data, str->len)) {
-                ctx->matched = 1;
-                ctx->matched_rule = rule_p[i].str;
-                break;
-            }
-        }
-
         if (rule_p[i].rgc != NULL) {
             /* REGEX */
             n = (rule_p[i].rgc->captures + 1) * 3;
@@ -53,20 +44,25 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
 
             ngx_pfree(r->pool, captures);
 
-            if (rc < NGX_REGEX_NO_MATCHED) {
+            if (rc == NGX_REGEX_NO_MATCHED) {
+                continue;
+            } else if (rc < NGX_REGEX_NO_MATCHED) {
                 ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,
                               ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
                               rc, str, &rule_p[i].rgc->pattern);
                 return NGX_ERROR;
             }
-            
-            if (rc == NGX_REGEX_NO_MATCHED) {
-                continue;
-            }
     
             ctx->matched = 1;
             ctx->matched_rule = &rule_p[i].rgc->pattern;
             break;
+        } else if (rule_p[i].str != NULL) {
+            /* STR */
+            if (ngx_strnstr(str->data, (char*) rule_p[i].str->data, str->len)) {
+                ctx->matched = 1;
+                ctx->matched_rule = rule_p[i].str;
+                break;
+            }
         }
     }
 

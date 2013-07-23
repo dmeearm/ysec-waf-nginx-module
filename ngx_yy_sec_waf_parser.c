@@ -88,7 +88,7 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
     if (!rgc)
         return NGX_CONF_ERROR;
 
-    rgc->options = PCRE_CASELESS|PCRE_MULTILINE;
+    rgc->options = PCRE_CASELESS;
     rgc->pattern = pattern;
     rgc->pool = cf->pool;
     rgc->err.len = 0;
