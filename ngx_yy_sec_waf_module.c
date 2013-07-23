@@ -18,6 +18,13 @@ extern char * ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf, ngx_command_t *cmd, 
 extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r);
 
 static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
+    { ngx_string("yy_sec_waf"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_yy_sec_waf_loc_conf_t, enabled),
+      NULL },
+
     { ngx_string("basic_rule"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_http_yy_sec_waf_read_conf,
@@ -76,6 +83,8 @@ ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf)
         return NGX_CONF_ERROR;
     }
 
+    conf->enabled = NGX_CONF_UNSET;
+
     return conf;
 }
 
@@ -97,6 +106,7 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_ptr_value(conf->header_rules, prev->header_rules, NULL);
     ngx_conf_merge_ptr_value(conf->uri_rules, prev->uri_rules, NULL);
     ngx_conf_merge_ptr_value(conf->args_rules, prev->args_rules, NULL);
+    ngx_conf_merge_value(conf->enabled, prev->enabled, 1);
 
     return NGX_CONF_OK;
 }
@@ -142,17 +152,26 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 {
     ngx_int_t                       rc;
     ngx_http_request_ctx_t         *ctx;
+    ngx_http_yy_sec_waf_loc_conf_t *cf;
 
-    //ngx_http_yy_sec_waf_loc_conf_t *cf;
-    //cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
-    //ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] basic_rule=%V", &cf->basic_rule);
-
+    cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (cf == NULL) {
+		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[waf] ngx_http_get_module_loc_conf failed.");
+        return NGX_ERROR;
+    }
+
     if (ctx != NULL) {
         if (ctx->ready) {
             return NGX_DECLINED;
         }
         return NGX_DONE;
+    }
+
+    if (!cf->enabled) {
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] yy sec waf isn't enabled.");
+        return NGX_DECLINED;
     }
 
     ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_request_ctx_t));
@@ -171,13 +190,11 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         if (rc == NGX_AGAIN) {
             ctx->wait_for_body = 1;
             return NGX_DONE;
-        }
-        else if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,"[waf] NGX_HTTP_SPECIAL_RESPONSE.");
+        } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+            ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,"[waf] ngx_http_read_client_request_body failed.");
             return rc;
         }
-    }
-	else {
+    } else {
 		ctx->ready = 1;
 	}
 
@@ -185,12 +202,13 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         rc = ngx_http_yy_sec_waf_process_request(r);
 
         if (rc != NGX_OK) {
+			ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,"[waf] ngx_http_yy_sec_waf_process_request failed.");
             ngx_http_finalize_request(r, rc);
             return rc;
         }
 
         if (ctx->matched) {
-    		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+    		ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
     					   "[waf] rule(%V) matched.", ctx->matched_rule);
             if (ctx->log && !ctx->block) {
                 return NGX_DECLINED;
