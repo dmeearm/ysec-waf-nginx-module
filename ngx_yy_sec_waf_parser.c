@@ -88,7 +88,7 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
     if (!rgc)
         return NGX_CONF_ERROR;
 
-    rgc->options = PCRE_CASELESS;
+    rgc->options = PCRE_CASELESS|PCRE_MULTILINE;
     rgc->pattern = pattern;
     rgc->pool = cf->pool;
     rgc->err.len = 0;
@@ -96,6 +96,38 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
 
     if (ngx_regex_compile(rgc) != NGX_OK)
         return NGX_CONF_ERROR;
+
+#if (NGX_HAVE_PCRE_JIT) /* NGX_HAVE_PCRE_JIT */
+
+    ngx_pool_t	        *old_pool;
+    pcre_extra          *sd;
+    const char          *msg;
+
+    old_pool = ngx_http_yy_sec_waf_pcre_malloc_init(cf->pool);
+
+    sd = pcre_study(rgc->regex->code, PCRE_STUDY_JIT_COMPILE, &msg);
+
+    ngx_http_yy_sec_waf_pcre_malloc_done(old_pool);
+
+    if (msg != NULL) {
+		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                       "pcre study failed with PCRE_STUDY_JIT_COMPILE: "
+                       "%s (%p)", msg, sd);
+    }
+
+    if (sd != NULL) {
+        int 		jitted;
+
+        old_pool = ngx_http_yy_sec_waf_pcre_malloc_init(cf->pool);
+
+        pcre_fullinfo(rgc->regex->code, sd, PCRE_INFO_JIT, &jitted);
+
+		ngx_http_yy_sec_waf_pcre_malloc_done(old_pool);
+    }
+
+    rgc->regex->extra = sd;
+
+#endif /* NGX_HAVE_PCRE_JIT */
 
     rule->rgc = rgc;
 

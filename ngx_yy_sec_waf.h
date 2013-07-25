@@ -16,6 +16,10 @@
 #include <ngx_event.h>
 #include <ngx_string.h>
 
+#if !(NGX_PCRE)
+#error "YY SEC WAF need pcre library, please reconfigure ngxin with --with-pcre flag."
+#endif
+
 #define STR "str:"
 #define REGEX "regex:"
 #define GIDS "gids:"
@@ -36,11 +40,16 @@
 
 extern ngx_module_t  ngx_http_yy_sec_waf_module;
 
+ngx_pool_t *ngx_http_yy_sec_waf_pcre_malloc_init(ngx_pool_t *pool);
+void ngx_http_yy_sec_waf_pcre_malloc_done(ngx_pool_t *old_pool);
+
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 typedef struct {
     ngx_str_t *str; /* STR */
+#if (NGX_PCRE) /* NGX_PCRE */
     ngx_regex_compile_t *rgc; /* REG */
+#endif /* NGX_PCRE */
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */
     /* POS */
