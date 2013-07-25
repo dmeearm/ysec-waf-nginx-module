@@ -280,7 +280,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 
 	if (rule.header) {
 		if (p->header_rules == NULL) {
-			p->header_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
+			p->header_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
 	
 			if (p->header_rules == NULL)
 				return NGX_CONF_ERROR;
@@ -296,7 +296,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 
 	if (rule.args) {
 		if (p->args_rules == NULL) {
-			p->args_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
+			p->args_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
 	
 			if (p->args_rules == NULL)
 				return NGX_CONF_ERROR;
@@ -312,7 +312,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 
     if (rule.uri) {
 		if (p->uri_rules == NULL) {
-			p->uri_rules = ngx_array_create(cf->pool, 2, sizeof(ngx_http_yy_sec_waf_rule_t));
+			p->uri_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
 	
 			if (p->uri_rules == NULL)
 				return NGX_CONF_ERROR;

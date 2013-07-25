@@ -68,6 +68,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
 
     if (rule_p->block)
         ctx->block = 1;
+
     if (rule_p->log)
         ctx->log = 1;
 
@@ -148,9 +149,6 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
     ngx_str_t  tmp;
-
-    if (r->args.len == 0)
-        return;
 
     tmp.len = r->args.len;
     tmp.data = ngx_pcalloc(r->pool, tmp.len);
