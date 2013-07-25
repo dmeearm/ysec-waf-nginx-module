@@ -56,7 +56,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
             ctx->matched = 1;
             ctx->matched_rule = &rule_p[i].rgc->pattern;
             break;
-        } else if (rule_p[i].str != NULL) {
+        } else if (rule_p[i].str != ULL) {
             /* STR */
             if (ngx_strnstr(str->data, (char*) rule_p[i].str->data, str->len)) {
                 ctx->matched = 1;
@@ -66,11 +66,10 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
         }
     }
 
-    if (rule_p->block)
-        ctx->block = 1;
-
-    if (rule_p->log)
-        ctx->log = 1;
+    ctx->block = rule_p->block;
+    ctx->log = rule_p->log;
+    ctx->gids = rule_p->gids;
+    ctx->msg = rule_p->msg;
 
     return NGX_OK;
 }

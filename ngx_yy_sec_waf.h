@@ -72,6 +72,8 @@ typedef struct {
 
     ngx_flag_t    matched:1;
     ngx_str_t    *matched_rule;
+    ngx_str_t    *gids;
+    ngx_str_t    *msg;
 } ngx_http_request_ctx_t;
 
 

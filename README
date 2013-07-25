@@ -6,7 +6,7 @@ Install
     apt-get install zlib1g zlib1g-dev
     apt-get install openssl openssl-dev
 
-    make with
+    make
 
 Test
     prove -r t/
