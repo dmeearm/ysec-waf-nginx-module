@@ -191,7 +191,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             ctx->wait_for_body = 1;
             return NGX_DONE;
         } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,"[waf] ngx_http_read_client_request_body failed.");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"[waf] ngx_http_read_client_request_body failed.");
             return rc;
         }
     } else {
@@ -202,7 +202,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         rc = ngx_http_yy_sec_waf_process_request(r);
 
         if (rc != NGX_OK) {
-			ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,"[waf] ngx_http_yy_sec_waf_process_request failed.");
+			ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"[waf] ngx_http_yy_sec_waf_process_request failed.");
             ngx_http_finalize_request(r, rc);
             return rc;
         }

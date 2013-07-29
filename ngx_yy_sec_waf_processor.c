@@ -47,7 +47,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
             if (rc == NGX_REGEX_NO_MATCHED) {
                 continue;
             } else if (rc < NGX_REGEX_NO_MATCHED) {
-                ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                               ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
                               rc, str, &rule_p[i].rgc->pattern);
                 return NGX_ERROR;

@@ -88,7 +88,7 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
     if (!rgc)
         return NGX_CONF_ERROR;
 
-    rgc->options = PCRE_CASELESS;
+    rgc->options = PCRE_CASELESS|PCRE_MULTILINE;
     rgc->pattern = pattern;
     rgc->pool = cf->pool;
     rgc->err.len = 0;
@@ -269,7 +269,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         for (i = 0; rule_parser[i].parse; i++) {
             if (!ngx_strncmp(value[n].data, rule_parser[i].type, ngx_strlen(rule_parser[i].type))) {
                 if (rule_parser[i].parse(cf, &value[n], &rule) != NGX_CONF_OK) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "[waf] Failed parsing '%s'", value[n].data);
+                    ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[waf] Failed parsing '%s'", value[n].data);
                     return NGX_CONF_ERROR;
                 }
     
