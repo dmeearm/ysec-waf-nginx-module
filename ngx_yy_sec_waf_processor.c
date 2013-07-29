@@ -56,7 +56,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
             ctx->matched = 1;
             ctx->matched_rule = &rule_p[i].rgc->pattern;
             break;
-        } else if (rule_p[i].str != ULL) {
+        } else if (rule_p[i].str != NULL) {
             /* STR */
             if (ngx_strnstr(str->data, (char*) rule_p[i].str->data, str->len)) {
                 ctx->matched = 1;

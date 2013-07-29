@@ -113,3 +113,22 @@ location / {
 GET /?a="<script>alert(1)</script>"
 --- error_code: 200
 
+=== TEST 9: basic post
+--- user_files
+>>> foobar
+eh yo
+--- config
+location / {
+    yy_sec_waf off;
+    basic_rule regex:<script[^>]*> msg:test pos:ARGS|HEADER gids:XSS lev:LOG|BLOCK;
+    root $TEST_NGINX_SERVROOT/html/;
+    index index.html index.htm;
+    error_page 405 = $uri;
+}
+--- more_headers
+Content-Type: application/x-www-form-urlencoded
+--- request eval
+use URI::Escape;
+"POST /
+foo1=ba%%2f%3c%3D%3%D%33%DD%FF%2F%3cr1&foo2=bar2"
+--- error_code: 200
