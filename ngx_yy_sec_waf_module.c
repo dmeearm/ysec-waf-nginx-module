@@ -261,7 +261,7 @@ ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
 
     if (ctx->waiting_more_body) {
         ctx->waiting_more_body = 0;
-		ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_core_run_phases Entry");
+        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_core_run_phases Entry");
         ngx_http_core_run_phases(r);
     }
 

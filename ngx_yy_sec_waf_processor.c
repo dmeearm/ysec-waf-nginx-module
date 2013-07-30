@@ -13,7 +13,7 @@
 #define X_WWW_FORM_URLENCODED "application/x-www-form-urlencoded"
 
 /*
-** @description: This function is called to apply the matched rule of the waf.
+** @description: This function is called to apply the matched rule of yy sec waf.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @para: ngx_http_request_ctx_t *ctx
