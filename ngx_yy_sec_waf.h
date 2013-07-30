@@ -67,8 +67,9 @@ typedef struct {
     ngx_flag_t    log:1;
     ngx_flag_t    block:1;
     /* state */
-    ngx_flag_t    ready:1;
-    ngx_flag_t    wait_for_body:1;
+    ngx_flag_t    process_done:1;
+    ngx_flag_t    read_body_done:1;
+    ngx_flag_t    waiting_more_body:1;
 
     ngx_flag_t    matched:1;
     ngx_str_t    *matched_rule;

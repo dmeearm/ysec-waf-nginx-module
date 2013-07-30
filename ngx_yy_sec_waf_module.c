@@ -150,6 +150,8 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 {
+	ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Enter");
+
     ngx_int_t                       rc;
     ngx_http_request_ctx_t         *ctx;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
@@ -163,14 +165,17 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     }
 
     if (ctx != NULL) {
-        if (ctx->ready) {
+        if (ctx->process_done) {
             return NGX_DECLINED;
         }
-        return NGX_DONE;
+
+        if (ctx->waiting_more_body) {
+            return NGX_DONE;
+        }
     }
 
     if (!cf->enabled) {
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] yy sec waf isn't enabled.");
+		ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] yy sec waf isn't enabled.");
         return NGX_DECLINED;
     }
 
@@ -184,21 +189,22 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     ngx_http_set_ctx(r, ctx, ngx_http_yy_sec_waf_module);
 
     /* This section is prepared for further considerations, such as checking the body of this request.*/
-    if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) && !ctx->ready) {
+    if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) && !ctx->read_body_done) {
         rc = ngx_http_read_client_request_body(r, ngx_http_yy_sec_waf_request_body_handler);
 
         if (rc == NGX_AGAIN) {
-            ctx->wait_for_body = 1;
+            ctx->waiting_more_body = 1;
             return NGX_DONE;
-        } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+        } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE || rc == NGX_ERROR) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"[waf] ngx_http_read_client_request_body failed.");
+            r->count--;
             return rc;
         }
     } else {
-		ctx->ready = 1;
+		ctx->read_body_done = 1;
 	}
 
-    if (ctx && ctx->ready) {
+    if (ctx && ctx->read_body_done && !ctx->process_done) {
         rc = ngx_http_yy_sec_waf_process_request(r);
 
         if (rc != NGX_OK) {
@@ -206,6 +212,8 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             ngx_http_finalize_request(r, rc);
             return rc;
         }
+
+        ctx->process_done = 1;
 
         if (ctx->matched) {
     		ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
@@ -219,9 +227,14 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
                    TODO: redirect to other pages, such as 404.html. */
     		ngx_http_discard_request_body(r);
     		ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
+
+            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Exit");
+
             return NGX_DONE;
         }
     }
+
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Exit");
 
     return NGX_DECLINED;
 }
@@ -238,16 +251,21 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 static void 
 ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
 {
+	ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_request_body_handler Entry");
+
     ngx_http_request_ctx_t    *ctx;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
-    ctx->ready = 1;
+    ctx->read_body_done = 1;
     r->count--;
 
-    if (ctx->wait_for_body) {
-        ctx->wait_for_body = 0;
+    if (ctx->waiting_more_body) {
+        ctx->waiting_more_body = 0;
+		ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_core_run_phases Entry");
         ngx_http_core_run_phases(r);
     }
+
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_request_body_handler Exit");
 }
 
 

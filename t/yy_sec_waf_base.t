@@ -1,134 +1,67 @@
-#vi:filetype=perl
+#yy_sec_waf off;
 
-use lib 'lib';
-use Test::Nginx::Socket;
+#####
+#xss attack
+#####
 
-repeat_each(3);
+#1.-------------------------------------------------------------------------------------------------
+#p1
+#basic_rule regex:<(script|iframe|style|applet|base|body|frame|frameset|form|input|ins|layer|link|meta|object|address|area|bgsound|textarea)[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p2
+#basic_rule regex:<(s(cript|tyle)|i(frame|n(put|s))|f(rame(set)?|orm)|a(pplet|ddress|rea)|b(ase|gsound|ody)|l(ayer|ink)|meta|object|textarea)[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p3
+basic_rule regex:<(?:s(?:cript|tyle)|i(?:frame|n(?:put|s))|f(?:rame(?:set)?|orm)|a(?:pplet|ddress|rea)|b(?:ase|gsound|ody)|l(?:ayer|ink)|meta|object|textarea)[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-plan tests => repeat_each(1) * blocks();
-no_root_location();
-no_long_string();
-$ENV{TEST_NGINX_SERVROOT} = server_root();
-run_tests();
+#2.---------------------------------------------------------------------------------------------------
+#p1
+#basic_rule regex:[\s`'"]on(abort|blur|change|click|dblclick|dragdrop|error|focus|keydown|keypress|keyup|load|mousedown|mousemove|mouseout|mouseover|mouseup|move|readystatechange|reset|resize|select|submit|unload)\s*= msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p2
+#basic_rule regex:[\s`'"]on(abort|blur|c(hange|lick)|d(blclick|ragdrop)|error|focus|key(down|press|up)|load|m(ouse(down|move|o(ut|ver)|up)|ove)|re(adystatechange|s(et|ize))|s(elect|ubmit)|unload)\s*= msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p3
+basic_rule regex:[\s`'"]on(?:abort|blur|c(?:hange|lick)|d(?:blclick|ragdrop)|error|focus|key(?:down|press|up)|load|m(?:ouse(?:down|move|o(?:ut|ver)|up)|ove)|re(?:adystatechange|s(?:et|ize))|s(?:elect|ubmit)|unload)\s*= msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-__DATA__
-=== TEST 1: Basic GET request
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /
---- error_code: 200
 
-=== TEST 2: DENY: Short Char Rule
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 403
+#3.--------------------------------------------------------------------------------------------------
+#p1,p2
+#basic_rule regex:[\s`'"]+style\s*=[^:]*:\s*(url|expression) msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p3
+basic_rule regex:[\s`'"]+style\s*=[^:]*:\s*(?:url|expression) msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 3: Regex
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 403
+#union of 2,3
+#basic_rule regex:[\s`'"]+(on(abort|blur|c(hange|lick)|d(blclick|ragdrop)|error|focus|key(down|press|up)|load|m(ouse(down|move|o(ut|ver)|up)|ove)|re(adystatechange|s(et|ize))|s(elect|ubmit)|unload)\s*=|style\s*=[^:]*:\s*(url|expression)) msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 4: Multi Rules
---- config
-location / {
-    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
-    basic_rule regex:<script[^>]*> msg:test pos:BODY|ARGS gids:XSS;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 403
+#4.--------------------------------------------------------------------------------------------------
+#p1,p2
+#basic_rule "regex:((j|&#x[46]a;)(a|&#x[46]1;)(v|&#x[57]6;)(a|&#x[46]1;)|(v|&#x[57]6;)(b|&#x[46]2;))(s|&#x[57]3;)(c|&#x[46]3;)(r|&#x[57]2;)(i|&#x[46]9;)(p|&#x[57]0;)(t|&#x[57]4;)(:|&#x3a;)|(d|&#x[46]4;)(a|&#x[46]1;)(t|&#x[57]4;)(a|&#x[46]1;)(:|&#x3a;)(t|&#x[57]4;)(e|&#x[46]5;)(x|&#x[57]8;)(t|&#x[57]4;)(/|&#x2f;)(h|&#x[46]8;)(t|&#x[57]4;)(m|&#x[46]d;)(l|&#x[46]c;)" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p3
+#basic_rule "regex:(?:(?:j|&#x[46]a;)(?:a|&#x[46]1;)(?:v|&#x[57]6;)(?:a|&#x[46]1;)|(?:v|&#x[57]6;)(?:b|&#x[46]2;))(?:s|&#x[57]3;)(?:c|&#x[46]3;)(?:r|&#x[57]2;)(?:i|&#x[46]9;)(?:p|&#x[57]0;)(?:t|&#x[57]4;)(?::|&#x3a;)|(?:d|&#x[46]4;)(?:a|&#x[46]1;)(?:t|&#x[57]4;)(?:a|&#x[46]1;)(?::|&#x3a;)(?:t|&#x[57]4;)(?:e|&#x[46]5;)(?:x|&#x[57]8;)(?:t|&#x[57]4;)(?:/|&#x2f;)(?:h|&#x[46]8;)(?:t|&#x[57]4;)(?:m|&#x[46]d;)(?:l|&#x[46]c;)" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 5: POS, Not in Args pos
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:BODY gids:XSS;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 200
+basic_rule regex:(?:java|vb)script:|data:text/html msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#5.---------------------------------------------------------------------------------------------------
+#p1,p2
+#basic_rule "regex:[\"']\s*(/\*.*?\*/)?\s*;.+(\"|'|//|/\*|<!--)" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p3
+basic_rule "regex:[\"']\s*(?:/\*.*?\*/)?\s*;.+(?:\"|'|//|/\*|<!--)" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 6: LEV, log
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 200
+#6.---------------------------------------------------------------------------------------------------
+#p1,p2,p3
+basic_rule regex:[<\s`'"].*?\x00[^=>]*[=>] msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 7: LEV, block
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:BLOCK;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 403
+#7.--------------------------------------------------------------------------------------------------
+#p1,p2
+#basic_rule "regex:['\"]\s*\)\s*;.*?(\(.*?['\"]|//|<!--|/\*)" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+#p3
+basic_rule "regex:['\"]\s*\)\s*;.*?(?:\(.*?['\"]|//|<!--|/\*)" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 7: LEV, log and block
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 403
+#union 5,7
+#basic_rule "regex:[\"']\s*((/\*.*?\*/)?\s*;.+(\"|'|//|/\*|<!--)|\)\s*;.*?(\(.*?['\"]|//|<!--|/\*))" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 8: yy_sec_waf flag
---- config
-location / {
-    yy_sec_waf off;
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 200
+#8.--------------------------------------------------------------------------------------------------
+#p1,p2,p3
+basic_rule regex:allowScriptAccess[\s]*?=[\s]*?always msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
 
-=== TEST 9: basic post
---- user_files
->>> foobar
-eh yo
---- config
-location / {
-    yy_sec_waf off;
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS|HEADER gids:XSS lev:LOG|BLOCK;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-    error_page 405 = $uri;
-}
---- more_headers
-Content-Type: application/x-www-form-urlencoded
---- request eval
-use URI::Escape;
-"POST /
-foo1=ba%%2f%3c%3D%3%D%33%DD%FF%2F%3cr1&foo2=bar2"
---- error_code: 200
+##################
+#command injection
+##################
+basic_rule "regex:[\;\|\`]\W*?\b(?:c(?:h(?:grp|mod|own|sh)|url|pp|c|d|at)|p(?:asswd|ython|erl|ing|s)|n(?:asm|et|map|c)|f(?:inger|tp)|t(?:elnet|raceroute|clsh8?|ftp)|g(?:cc|\+\+)|kill|mail|(?:xte)?rm|ls(?:of)?|id|echo|uname|wget|sh)\b" msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
+
