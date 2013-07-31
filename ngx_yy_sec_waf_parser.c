@@ -8,6 +8,9 @@
 
 #include "ngx_yy_sec_waf.h"
 
+extern ngx_http_yy_sec_waf_rule_t mod_rules[];
+extern ngx_uint_t mod_rules_num;
+
 typedef struct {
     const char *type;
     void *(*parse)(ngx_conf_t *, ngx_str_t *, ngx_http_yy_sec_waf_rule_t *);
@@ -17,7 +20,11 @@ static void *ngx_http_yy_sec_waf_parse_str(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
+static void *ngx_http_yy_sec_waf_parse_mod(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_gids(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
+static void *ngx_http_yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_msg(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
@@ -30,7 +37,9 @@ static void *ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
 static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
     { STR, ngx_http_yy_sec_waf_parse_str},
     { REGEX, ngx_http_yy_sec_waf_parse_regex},
+    { MOD, ngx_http_yy_sec_waf_parse_mod},
     { GIDS, ngx_http_yy_sec_waf_parse_gids},
+    { ID, ngx_http_yy_sec_waf_parse_rule_id},
     { MSG, ngx_http_yy_sec_waf_parse_msg},
     { POS, ngx_http_yy_sec_waf_parse_pos},
     { LEVEL, ngx_http_yy_sec_waf_parse_level},
@@ -103,6 +112,35 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
 }
 
 /*
+** @description: This function is called to parse mod of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+ngx_http_yy_sec_waf_parse_mod(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
+{
+    ngx_str_t mod;
+
+    if (!rule)
+        return NGX_CONF_ERROR;
+
+    mod.data = tmp->data + ngx_strlen(MOD);
+    mod.len = tmp->len - ngx_strlen(MOD);
+
+	if (!ngx_strncasecmp(mod.data, (u_char*)"off", mod.len)) {
+        rule->mod = 0;
+	} else if (!ngx_strncasecmp(mod.data, (u_char*)"on", mod.len)) {
+        rule->mod = 1;
+	}
+
+    return NGX_CONF_OK;
+}
+
+/*
 ** @description: This function is called to parse gids of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *tmp
@@ -127,6 +165,35 @@ ngx_http_yy_sec_waf_parse_gids(ngx_conf_t *cf,
     gids->len = tmp->len - ngx_strlen(GIDS);
 
     rule->gids = gids;
+
+    return NGX_CONF_OK;
+}
+
+/*
+** @description: This function is called to parse rule id of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+ngx_http_yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
+{
+    ngx_str_t *rule_id;
+
+    if (!rule)
+        return NGX_CONF_ERROR;
+
+    rule_id = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+    if (!rule_id)
+        return NGX_CONF_ERROR;
+
+    rule_id->data = tmp->data + ngx_strlen(ID);
+    rule_id->len = tmp->len - ngx_strlen(ID);
+
+    rule->rule_id = ngx_atoi(rule_id->data, rule_id->len);
 
     return NGX_CONF_OK;
 }
@@ -276,6 +343,17 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
                 break;
             }
         }
+    }
+
+    if (rule.mod) {
+        for (i = 0; i < mod_rules_num; i++) {
+            if (rule.rule_id == mod_rules[i].rule_id) {
+                ngx_memcpy(&mod_rules[i], &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
+                break;
+            }
+        }
+
+        return NGX_CONF_OK;
     }
 
     if (rule.header) {

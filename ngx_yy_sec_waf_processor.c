@@ -8,12 +8,59 @@
 
 #include "ngx_yy_sec_waf.h"
 
-#define JSON "application/json"
-#define FORM_DATA "multipart/form-data"
-#define X_WWW_FORM_URLENCODED "application/x-www-form-urlencoded"
+enum {
+    WIRED_REQUEST = 0,
+    UNCOMMON_HEX_ENCODING,
+    UNCOMMON_CONTENT_TYPE,
+    UNCOMMON_URL,
+    UNCOMMON_POST_FORMAT,
+    UNCOMMON_POST_BOUNDARY,
+    BIG_REQUEST
+};
+
+ngx_http_yy_sec_waf_rule_t mod_rules[] = {
+    { /* WIRED_REQUEST */
+        .mod = 0,
+        .rule_id = 1,
+    },
+
+    { /* UNCOMMON_HEX_ENCODING */
+        .mod = 0,
+        .rule_id = 2,
+    },
+    
+    { /* UNCOMMON_CONTENT_TYPE */
+        .mod = 0,
+        .rule_id = 3,
+    },
+
+    { /* UNCOMMON_URL */
+        .mod = 0,
+        .rule_id = 4,
+    },
+    
+    { /* UNCOMMON_POST_FORMAT */
+        .mod = 0,
+        .rule_id = 5,
+    },
+   
+    { /* UNCOMMON_POST_BOUNDARY */
+        .mod = 0,
+        .rule_id = 6,
+    },
+   
+    { /* UNCOMMON_POST_BOUNDARY */
+        .mod = 0,
+        .rule_id = 7,
+    }
+};
+
+const ngx_uint_t mod_rules_num = sizeof(mod_rules)/sizeof(ngx_http_yy_sec_waf_rule_t);
+
+static ngx_int_t ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t*, ngx_str_t*, ngx_http_request_ctx_t*);
 
 /*
-** @description: This function is called to apply the matched rule of yy sec waf.
+** @description: This function is called to apply the mod rule of yy sec waf.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @para: ngx_http_request_ctx_t *ctx
@@ -21,16 +68,22 @@
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_apply_matched_rule(ngx_http_request_t *r,
+ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
     (void) r;
 
-	ctx->matched = 1;
-	ctx->block = rule->block;
-	ctx->log = rule->log;
-	ctx->gids = rule->gids;
-	ctx->msg = rule->msg;
+    if (rule == NULL || ctx == NULL)
+        return NGX_ERROR;
+
+    if (rule->mod) {
+        ctx->matched = 1;
+        ctx->rule_id = rule->rule_id;
+        ctx->block = rule->block;
+        ctx->log = rule->log;
+        ctx->gids = rule->gids;
+        ctx->msg = rule->msg;
+    }
 
     return NGX_OK;
 }
@@ -96,8 +149,68 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     }
 
     if (ctx->matched_rule != NULL) {
-        ngx_http_yy_sec_waf_apply_matched_rule(r, rule_p, ctx);
+		ctx->matched = 1;
+		ctx->block = rule_p->block;
+		ctx->log = rule_p->log;
+		ctx->gids = rule_p->gids;
+		ctx->msg = rule_p->msg;
     }
+
+    return NGX_OK;
+}
+
+/*
+** @description: This function is called to process the content type of the request.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_str_t full_body
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+static int
+ngx_yy_sec_waf_process_content_type(ngx_http_request_t *r,
+    u_char **boundary, ngx_uint_t *boundary_len)
+{
+    u_char *start;
+    u_char *end;
+
+    start = r->headers_in.content_type->value.data + ngx_strlen("multipart/form-data;");
+    end = r->headers_in.content_type->value.data + r->headers_in.content_type->value.len;
+
+    while (start < end && *start && (*start == ' ' || *start == '\t'))
+        start++;
+
+    if (ngx_strncmp(start, "boundary=", ngx_strlen("boundary=")))
+        return NGX_ERROR;
+
+    *boundary_len = end - start;
+    *boundary = start;
+
+    if (*boundary_len > 70)
+        return NGX_ERROR;
+
+    return NGX_OK;
+}
+
+/*
+** @description: This function is called to process the multipart of the request.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_str_t full_body
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+static ngx_int_t
+ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
+    ngx_str_t *full_body, ngx_http_request_ctx_t *ctx)
+{
+    u_char *boundary;
+    ngx_uint_t boundary_len;
+
+	if (ngx_yy_sec_waf_process_content_type(r, &boundary, &boundary_len) != NGX_OK) {
+        ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[WIRED_REQUEST], ctx);
+        return NGX_ERROR;
+	}
 
     return NGX_OK;
 }
@@ -221,10 +334,7 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
     ngx_str_t    full_body;
 	
     if (!r->request_body->bufs || !r->headers_in.content_type) {
-        return;
-    }
-
-    if (r->request_body->temp_file) {
+		ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] no contenty type");
         return;
     }
 
@@ -253,18 +363,15 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         full_body.data = src;
     }
 
-    if (r->headers_in.content_length_n != (off_t)full_body.len) {
-        return;
-    }
-
     if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
-        (u_char*)X_WWW_FORM_URLENCODED, ngx_strlen(X_WWW_FORM_URLENCODED))) {
+        (u_char*)"application/x-www-form-urlencoded", ngx_strlen("application/x-www-form-urlencoded"))) {
         /* X_WWW_FORM_URLENCODED */
     } else if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
-        (u_char*)FORM_DATA, ngx_strlen(FORM_DATA))) {
-        /* FORM_DATA */
+        (u_char*)"multipart/form-data", ngx_strlen("multipart/form-data"))) {
+        /* MULTIPART */
+        ngx_http_yy_sec_waf_process_multipart(r, &full_body, ctx);
     } else if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
-        (u_char*)JSON, ngx_strlen(JSON))) {
+        (u_char*)"application/json", ngx_strlen("application/json"))) {
         /* JSON */
     } else {
         /* unkown content type */

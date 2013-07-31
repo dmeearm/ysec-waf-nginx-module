@@ -18,7 +18,9 @@
 
 #define STR "str:"
 #define REGEX "regex:"
+#define MOD "mod:"
 #define GIDS "gids:"
+#define ID "id:"
 #define MSG "msg:"
 #define POS "pos:"
 #define LEVEL "lev:"
@@ -41,8 +43,10 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 typedef struct {
     ngx_str_t *str; /* STR */
     ngx_regex_compile_t *rgc; /* REG */
+    ngx_flag_t mod:1; /* MOD */
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */
+    ngx_int_t  rule_id;
     /* POS */
     ngx_flag_t body:1;
     ngx_flag_t header:1;
@@ -72,6 +76,7 @@ typedef struct {
     ngx_flag_t    waiting_more_body:1;
 
     ngx_flag_t    matched:1;
+    ngx_int_t     rule_id;
     ngx_str_t    *matched_rule;
     ngx_str_t    *gids;
     ngx_str_t    *msg;
