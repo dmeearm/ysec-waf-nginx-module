@@ -179,7 +179,7 @@ ngx_yy_sec_waf_unescape(ngx_str_t *str) {
     for (i = 0; i < str->len; i++) {
         if (str->data[i] == 0x0) {
     	    nullbytes++;
-    	    str->data[i] = '0';
+    	    //str->data[i] = '0';
         }
     }
 

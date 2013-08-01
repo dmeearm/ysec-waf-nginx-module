@@ -286,7 +286,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     ngx_str_t *full_body, ngx_http_request_ctx_t *ctx)
 {
     u_char *boundary, *line_start, *line_end, *body_end;
-    ngx_uint_t boundary_len, idx;
+    ngx_uint_t boundary_len, idx, nullbytes;
     ngx_str_t name, filename, content_type;
 
 	if (ngx_http_yy_sec_waf_process_boundary(r, &boundary, &boundary_len) != NGX_OK) {
@@ -301,7 +301,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     while (idx < full_body->len) {
         /* plus with 4 for -- and \r\n*/
         idx += boundary_len + 4;
-        if (ngx_strncasecmp(full_body->data + idx, (u_char*)"content-disposition: form-data;",
+        if (ngx_strncasecmp(full_body->data+idx, (u_char*)"content-disposition: form-data;",
             ngx_strlen("content-disposition: form-data;"))) {
             ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
             return NGX_ERROR;
@@ -309,7 +309,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
         idx += ngx_strlen("content-disposition: form-data;");
 
-        line_end = (u_char*) ngx_strchr(full_body->data + idx, '\n');
+        line_end = (u_char*) ngx_strchr(full_body->data+idx, '\n');
         if (!line_end) {
             ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
             return NGX_ERROR;
@@ -346,7 +346,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             body_end = (u_char*) ngx_strstr(full_body->data+idx, "\r\n--");
             while(!body_end) {
                 idx += ngx_strlen((const char*)full_body->data+idx);
-                if (idx < full_body->len-2) {
+                if (idx < full_body->len-2) { 
                     idx++;
                     body_end = (u_char*) ngx_strstr(full_body->data+idx, "\r\n--");
                 } else
@@ -361,7 +361,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             if (!ngx_strncmp(body_end+4, boundary, boundary_len))
                 break;
             else {
-                idx += (u_char*)body_end - (full_body->data+idx) + 1;
+                idx += (u_char*)body_end - (full_body->data + idx) + 1;
                 body_end = NULL;
             }
         }
@@ -370,7 +370,21 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             return NGX_ERROR;
         }
 
+        if (filename.data) {
+            nullbytes = ngx_yy_sec_waf_unescape(&filename);
+            if (nullbytes > 0) {
+                ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_HEX_ENCODING], ctx);
+                return NGX_ERROR;
+            }
 
+            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+                "[waf] checking filename [%V]", &filename);
+        }
+
+		idx += (u_char*)body_end - (full_body->data + idx);
+
+        if (!ngx_strncmp(body_end, "\r\n", ngx_strlen("\r\n"))
+            idx += ngx_strlen("\r\n");
     }
 
     return NGX_OK;
