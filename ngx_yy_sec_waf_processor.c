@@ -57,7 +57,10 @@ ngx_http_yy_sec_waf_rule_t mod_rules[] = {
 
 const ngx_uint_t mod_rules_num = sizeof(mod_rules)/sizeof(ngx_http_yy_sec_waf_rule_t);
 
-static ngx_int_t ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t*, ngx_str_t*, ngx_http_request_ctx_t*);
+static ngx_int_t ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t* r,
+    ngx_str_t* str, ngx_http_request_ctx_t* ctx);
+static ngx_int_t ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx);
 
 /*
 ** @description: This function is called to apply the mod rule of yy sec waf.
@@ -69,28 +72,91 @@ static ngx_int_t ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t*, ngx_
 
 static ngx_int_t
 ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
-    (void) r;
-
     if (rule == NULL || ctx == NULL)
         return NGX_ERROR;
 
     if (rule->mod) {
-        ctx->matched = 1;
-        ctx->rule_id = rule->rule_id;
-        ctx->block = rule->block;
-        ctx->log = rule->log;
-        ctx->gids = rule->gids;
-        ctx->msg = rule->msg;
+
+        if (rule->str || rule->rgc) {
+            ngx_http_yy_sec_waf_process_basic_rule(r, str, rule, ctx);
+    
+            if (ctx->matched_rule) {
+                ctx->matched = 1;
+                ctx->rule_id = rule->rule_id;
+                ctx->block = rule->block;
+                ctx->log = rule->log;
+                ctx->gids = rule->gids;
+                ctx->msg = rule->msg;
+            }
+        } else {
+			ctx->matched = 1;
+			ctx->rule_id = rule->rule_id;
+			ctx->block = rule->block;
+			ctx->log = rule->log;
+			ctx->gids = rule->gids;
+			ctx->msg = rule->msg;
+        }
     }
 
     return NGX_OK;
 }
 
-
 /*
 ** @description: This function is called to process basic rule of the request.
+** @para: ngx_str_t *str
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+static ngx_int_t
+ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
+{
+    int       *captures, rc;
+    ngx_uint_t n;
+    
+    /* Simply match basic rule with the args.
+      TODO: regx->low sec, string->medium sec, char->high sec. */
+    if (rule->rgc != NULL) {
+        /* REGEX */
+        n = (rule->rgc->captures + 1) * 3;
+        
+        captures = ngx_palloc(r->pool, n*sizeof(int));
+        
+        if (captures == NULL) {
+            return NGX_ERROR;
+        }
+        
+        rc = ngx_regex_exec(rule->rgc->regex, str, captures, n);
+        
+        ngx_pfree(r->pool, captures);
+        
+        if (rc == NGX_REGEX_NO_MATCHED) {
+            return NGX_OK;
+        } else if (rc < NGX_REGEX_NO_MATCHED) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
+                rc, str, &rule->rgc->pattern);
+            return NGX_ERROR;
+        } else {
+            ctx->matched_rule = &rule->rgc->pattern;
+            return NGX_OK;
+        }
+    } else if (rule->str != NULL) {
+        /* STR */
+        if (ngx_strnstr(str->data, (char*) rule->str->data, str->len)) {
+            ctx->matched_rule = rule->str;
+            return NGX_OK;
+        }
+    }
+
+    return NGX_ERROR;
+}
+
+/*
+** @description: This function is called to process basic rules of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
 ** @para: ngx_array_t *rules
@@ -102,8 +168,8 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
 {
-    int       *captures, rc;
-    ngx_uint_t i, n;
+    int        rc;
+    ngx_uint_t i;
     ngx_http_yy_sec_waf_rule_t *rule_p;
 
     if (rules == NULL)
@@ -112,40 +178,13 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     rule_p = rules->elts;
 
     for (i = 0; i < rules->nelts; i++) {
-        /* Simply match basic rule with the args.
-             TODO: regx->low sec, string->medium sec, char->high sec. */
-        if (rule_p[i].rgc != NULL) {
-            /* REGEX */
-            n = (rule_p[i].rgc->captures + 1) * 3;
-            
-            captures = ngx_palloc(r->pool, n*sizeof(int));
-    
-            if (captures == NULL) {
-                return NGX_ERROR;
-            }
-            
-            rc = ngx_regex_exec(rule_p[i].rgc->regex, str, captures, n);
+        rc = ngx_http_yy_sec_waf_process_basic_rule(r, str, &rule_p[i], ctx);
 
-            ngx_pfree(r->pool, captures);
+        if (rc == NGX_ERROR)
+            return rc;
 
-            if (rc == NGX_REGEX_NO_MATCHED) {
-                continue;
-            } else if (rc < NGX_REGEX_NO_MATCHED) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                              ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
-                              rc, str, &rule_p[i].rgc->pattern);
-                return NGX_ERROR;
-            } else {
-                ctx->matched_rule = &rule_p[i].rgc->pattern;
-                break;
-            }
-        } else if (rule_p[i].str != NULL) {
-            /* STR */
-            if (ngx_strnstr(str->data, (char*) rule_p[i].str->data, str->len)) {
-                ctx->matched_rule = rule_p[i].str;
-                break;
-            }
-        }
+        if (ctx->matched_rule)
+            break;
     }
 
     if (ctx->matched_rule != NULL) {
@@ -290,7 +329,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     ngx_str_t name, filename, content_type;
 
 	if (ngx_http_yy_sec_waf_process_boundary(r, &boundary, &boundary_len) != NGX_OK) {
-        ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[WIRED_REQUEST], ctx);
+        ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &mod_rules[WIRED_REQUEST], ctx);
         return NGX_ERROR;
 	}
 
@@ -303,7 +342,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         idx += boundary_len + 4;
         if (ngx_strncasecmp(full_body->data+idx, (u_char*)"content-disposition: form-data;",
             ngx_strlen("content-disposition: form-data;"))) {
-            ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+            ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
             return NGX_ERROR;
         }
 
@@ -311,7 +350,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
         line_end = (u_char*) ngx_strchr(full_body->data+idx, '\n');
         if (!line_end) {
-            ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+            ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
             return NGX_ERROR;
         }
 
@@ -325,7 +364,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             line_start = line_end + 1;
             line_end = (u_char*) ngx_strchr(line_start, '\n');
             if (!line_end) {
-                ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+                ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
                 return NGX_ERROR;
             }
 
@@ -335,7 +374,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
         idx += (u_char*)line_end - (full_body->data + idx) + 1;
         if (full_body->data[idx] != '\r' || full_body->data[idx+1] != '\n') {
-            ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+            ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
             return NGX_ERROR;
         }
 
@@ -354,7 +393,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             }
 
             if (!body_end) {
-                ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+                ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
                 return NGX_ERROR;
             }
 
@@ -373,7 +412,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         if (filename.data) {
             nullbytes = ngx_yy_sec_waf_unescape(&filename);
             if (nullbytes > 0) {
-                ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_HEX_ENCODING], ctx);
+                ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &mod_rules[UNCOMMON_HEX_ENCODING], ctx);
                 return NGX_ERROR;
             }
 
