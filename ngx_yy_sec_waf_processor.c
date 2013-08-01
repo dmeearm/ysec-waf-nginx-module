@@ -383,7 +383,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
 		idx += (u_char*)body_end - (full_body->data + idx);
 
-        if (!ngx_strncmp(body_end, "\r\n", ngx_strlen("\r\n"))
+        if (!ngx_strncmp(body_end, "\r\n", ngx_strlen("\r\n")))
             idx += ngx_strlen("\r\n");
     }
 
