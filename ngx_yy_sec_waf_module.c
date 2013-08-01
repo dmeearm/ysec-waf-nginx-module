@@ -197,7 +197,6 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             return NGX_DONE;
         } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE || rc == NGX_ERROR) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"[waf] ngx_http_read_client_request_body failed.");
-            r->count--;
             return rc;
         }
     } else {
@@ -228,13 +227,15 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
             /* Simply discard and finalize the request.
                    TODO: redirect to other pages, such as 404.html. */
-            ngx_str_t empty = ngx_string("");
-            ngx_str_t url = ngx_string("50x.html");
-    		ngx_http_internal_redirect(r, &url, &empty);
+            //ngx_str_t empty = ngx_string("");
+            //ngx_str_t url = ngx_string("/redirect");
+
+    		//ngx_http_internal_redirect(r, &url, &empty);
+            //ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
 
             ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Exit");
 
-            return NGX_HTTP_OK;
+            return NGX_HTTP_FORBIDDEN;
         }
     }
 

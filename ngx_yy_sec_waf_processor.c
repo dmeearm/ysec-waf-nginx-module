@@ -249,6 +249,8 @@ ngx_http_yy_sec_waf_process_boundary(ngx_http_request_t *r,
     if (ngx_strncmp(start, "boundary=", ngx_strlen("boundary=")))
         return NGX_ERROR;
 
+    start += ngx_strlen("boundary=");
+
     *boundary_len = end - start;
     *boundary = start;
 
