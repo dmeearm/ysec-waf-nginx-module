@@ -216,21 +216,25 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         ctx->process_done = 1;
 
         if (ctx->matched) {
-    		ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-    					   "[waf] rule(%V) matched , gids(%V), msg(%V).",
-                           ctx->matched_rule, ctx->gids, ctx->msg);
+            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+    					   "[waf] rule_id(%d) matched.", ctx->rule_id);
+
+    		//ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+    		//			   "[waf] rule(%V) matched , gids(%V), msg(%V).",
+            //               ctx->matched_rule, ctx->gids, ctx->msg);
             if (ctx->log && !ctx->block) {
                 return NGX_DECLINED;
         	}
 
             /* Simply discard and finalize the request.
                    TODO: redirect to other pages, such as 404.html. */
-    		ngx_http_discard_request_body(r);
-    		ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
+            ngx_str_t empty = ngx_string("");
+            ngx_str_t url = ngx_string("50x.html");
+    		ngx_http_internal_redirect(r, &url, &empty);
 
             ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Exit");
 
-            return NGX_DONE;
+            return NGX_HTTP_OK;
         }
     }
 
