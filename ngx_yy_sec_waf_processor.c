@@ -160,15 +160,15 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to process the content type of the request.
+** @description: This function is called to process the boundary of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_request_ctx_t *ctx
 ** @para: ngx_str_t full_body
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static int
-ngx_yy_sec_waf_process_content_type(ngx_http_request_t *r,
+static ngx_int_t
+ngx_http_yy_sec_waf_process_boundary(ngx_http_request_t *r,
     u_char **boundary, ngx_uint_t *boundary_len)
 {
     u_char *start;
@@ -193,6 +193,87 @@ ngx_yy_sec_waf_process_content_type(ngx_http_request_t *r,
 }
 
 /*
+** @description: This function is called to process the disposition of the request.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_str_t full_body
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+static ngx_int_t
+ngx_http_yy_sec_waf_process_disposition(ngx_http_request_t *r,
+    u_char *str, u_char *line_end, ngx_str_t *name, ngx_str_t *filename)
+{
+    u_char *name_start, *name_end, *filename_start, *filename_end;
+
+    while (str < line_end) {
+        while(str < line_end && *str && (*str == ' ' || *str == '\t'))
+            str++;
+        if (str < line_end && *str && *str == ';')
+            str++;
+        while (str < line_end && *str && (*str == ' ' || *str == '\t'))
+            str++;
+
+        if (str >= line_end || !*str)
+            break;
+
+        if (!ngx_strncmp(str, "name=\"", ngx_strlen("name=\""))) {
+            name_start = name_end = str + ngx_strlen("name=\"");
+            do {
+                name_end = (u_char*) ngx_strchr(name_end, '"');
+                if (name_end && *(name_end - 1) != '\\')
+                    break;
+                name_end++;
+            } while (name_end && name_end < line_end);
+
+            if (!name_end || !*name_end)
+                return NGX_ERROR;
+
+            str = name_end;
+
+			if (str < line_end + 1)
+                str++;
+            else
+                return NGX_ERROR;
+
+            name->data = name_start;
+            name->len = name_end - name_start;
+        } 
+        else if (!ngx_strncmp(str, "filename=\"", ngx_strlen("filename=\""))) {
+            filename_end = filename_start = str + ngx_strlen("filename=\"");
+            do {
+                filename_end = (u_char*) ngx_strchr(filename_end, '"');
+                if (filename_end && *(filename_end - 1) != '\\')
+                    break;
+                filename_end++;
+            } while (filename_end && filename_end < line_end);
+
+            if (!filename_end)
+                return NGX_ERROR;
+
+            str = filename_end;
+            if (str < line_end + 1)
+                str++;
+            else
+                return NGX_ERROR;
+
+            filename->data = filename_start;
+            filename->len = filename_end - filename_start;
+        }
+        else if (str == line_end - 1)
+            break;
+		else {
+            return NGX_ERROR;
+		}
+    }
+
+    if (filename_end > line_end || name_end > line_end)
+        return NGX_ERROR;
+
+    return NGX_OK;
+}
+
+/*
 ** @description: This function is called to process the multipart of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_request_ctx_t *ctx
@@ -204,13 +285,93 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     ngx_str_t *full_body, ngx_http_request_ctx_t *ctx)
 {
-    u_char *boundary;
-    ngx_uint_t boundary_len;
+    u_char *boundary, *line_start, *line_end, *body_end;
+    ngx_uint_t boundary_len, idx;
+    ngx_str_t name, filename, content_type;
 
-	if (ngx_yy_sec_waf_process_content_type(r, &boundary, &boundary_len) != NGX_OK) {
+	if (ngx_http_yy_sec_waf_process_boundary(r, &boundary, &boundary_len) != NGX_OK) {
         ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[WIRED_REQUEST], ctx);
         return NGX_ERROR;
 	}
+
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] request_body: %V", full_body);
+
+    idx = 0;
+
+    while (idx < full_body->len) {
+        /* plus with 4 for -- and \r\n*/
+        idx += boundary_len + 4;
+        if (ngx_strncasecmp(full_body->data + idx, (u_char*)"content-disposition: form-data;",
+            ngx_strlen("content-disposition: form-data;"))) {
+            ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+            return NGX_ERROR;
+        }
+
+        idx += ngx_strlen("content-disposition: form-data;");
+
+        line_end = (u_char*) ngx_strchr(full_body->data + idx, '\n');
+        if (!line_end) {
+            ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+            return NGX_ERROR;
+        }
+
+        ngx_memzero(&name, sizeof(ngx_str_t));
+        ngx_memzero(&filename, sizeof(ngx_str_t));
+        ngx_memzero(&content_type, sizeof(ngx_str_t));
+
+        ngx_http_yy_sec_waf_process_disposition(r, full_body->data, line_end, &name, &filename);
+
+        if (filename.data) {
+            line_start = line_end + 1;
+            line_end = (u_char*) ngx_strchr(line_start, '\n');
+            if (!line_end) {
+                ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+                return NGX_ERROR;
+            }
+
+            content_type.data = line_start + ngx_strlen("content-type: ");
+            content_type.len = (line_end - 2) - content_type.data;
+        }
+
+        idx += (u_char*)line_end - (full_body->data + idx) + 1;
+        if (full_body->data[idx] != '\r' || full_body->data[idx+1] != '\n') {
+            ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+            return NGX_ERROR;
+        }
+
+        idx += 2;
+        body_end = NULL;
+
+        while (idx < full_body->len) {
+            body_end = (u_char*) ngx_strstr(full_body->data+idx, "\r\n--");
+            while(!body_end) {
+                idx += ngx_strlen((const char*)full_body->data+idx);
+                if (idx < full_body->len-2) {
+                    idx++;
+                    body_end = (u_char*) ngx_strstr(full_body->data+idx, "\r\n--");
+                } else
+                    break;
+            }
+
+            if (!body_end) {
+                ngx_http_yy_sec_waf_apply_mod_rule(r, &mod_rules[UNCOMMON_POST_FORMAT], ctx);
+                return NGX_ERROR;
+            }
+
+            if (!ngx_strncmp(body_end+4, boundary, boundary_len))
+                break;
+            else {
+                idx += (u_char*)body_end - (full_body->data+idx) + 1;
+                body_end = NULL;
+            }
+        }
+
+        if (!body_end) {
+            return NGX_ERROR;
+        }
+
+
+    }
 
     return NGX_OK;
 }
