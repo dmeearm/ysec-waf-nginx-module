@@ -235,7 +235,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
             ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Exit");
 
-            return NGX_HTTP_FORBIDDEN;
+            return NGX_HTTP_PRECONDITION_FAILED;
         }
     }
 

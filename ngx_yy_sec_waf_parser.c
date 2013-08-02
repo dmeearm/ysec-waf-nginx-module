@@ -8,7 +8,7 @@
 
 #include "ngx_yy_sec_waf.h"
 
-extern ngx_http_yy_sec_waf_rule_t mod_rules[];
+extern ngx_http_yy_sec_waf_rule_t *mod_rules[];
 extern ngx_uint_t mod_rules_num;
 
 typedef struct {
@@ -347,8 +347,8 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 
     if (rule.mod) {
         for (i = 0; i < mod_rules_num; i++) {
-            if (rule.rule_id == mod_rules[i].rule_id) {
-                ngx_memcpy(&mod_rules[i], &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
+            if (rule.rule_id == mod_rules[i]->rule_id) {
+                ngx_memcpy(mod_rules[i], &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
                 break;
             }
         }
