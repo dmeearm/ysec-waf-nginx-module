@@ -215,12 +215,9 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         ctx->process_done = 1;
 
         if (ctx->matched) {
-            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+    		ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
     					   "[waf] rule_id(%d) matched.", ctx->rule_id);
 
-    		//ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-    		//			   "[waf] rule(%V) matched , gids(%V), msg(%V).",
-            //               ctx->matched_rule, ctx->gids, ctx->msg);
             if (ctx->log && !ctx->block) {
                 return NGX_DECLINED;
         	}

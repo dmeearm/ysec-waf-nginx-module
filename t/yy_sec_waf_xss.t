@@ -15,11 +15,11 @@ __DATA__
 === TEST 1: script tag
 --- config
 location / {
-    include $TEST_NGINX_SERVROOT/../xss.conf;
+    include ../../../yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
 --- request
 GET /?a="<script>alert(1)</script>"
---- error_code: 403
+--- error_code: 412
 

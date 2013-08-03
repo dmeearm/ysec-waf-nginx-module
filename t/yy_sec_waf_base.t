@@ -32,7 +32,7 @@ location / {
 }
 --- request
 GET /?a="<script>alert(1)</script>"
---- error_code: 403
+--- error_code: 412
 
 === TEST 3: Regex
 --- config
@@ -43,7 +43,7 @@ location / {
 }
 --- request
 GET /?a="<script>alert(1)</script>"
---- error_code: 403
+--- error_code: 412
 
 === TEST 4: Multi Rules
 --- config
@@ -55,7 +55,7 @@ location / {
 }
 --- request
 GET /?a="<script>alert(1)</script>"
---- error_code: 403
+--- error_code: 412
 
 === TEST 5: POS, Not in Args pos
 --- config
@@ -88,7 +88,7 @@ location / {
 }
 --- request
 GET /?a="<script>alert(1)</script>"
---- error_code: 403
+--- error_code: 412
 
 === TEST 7: LEV, log and block
 --- config
@@ -99,7 +99,7 @@ location / {
 }
 --- request
 GET /?a="<script>alert(1)</script>"
---- error_code: 403
+--- error_code: 412
 
 === TEST 8: yy_sec_waf flag
 --- config

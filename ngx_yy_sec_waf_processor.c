@@ -128,25 +128,14 @@ ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
         return NGX_ERROR;
 
     if (rule->mod) {
+        ngx_http_yy_sec_waf_process_basic_rule(r, str, rule, ctx);
 
-        if (str != NULL) {
-            ngx_http_yy_sec_waf_process_basic_rule(r, str, rule, ctx);
-    
-            if (ctx->matched_rule) {
-                ctx->matched = 1;
-                ctx->rule_id = rule->rule_id;
-                ctx->block = rule->block;
-                ctx->log = rule->log;
-                ctx->gids = rule->gids;
-                ctx->msg = rule->msg;
-            }
-        } else {
-			ctx->matched = 1;
-			ctx->rule_id = rule->rule_id;
-			ctx->block = rule->block;
-			ctx->log = rule->log;
-			ctx->gids = rule->gids;
-			ctx->msg = rule->msg;
+        if (ctx->matched) {
+            ctx->rule_id = rule->rule_id;
+            ctx->block = rule->block;
+            ctx->log = rule->log;
+            ctx->gids = rule->gids;
+            ctx->msg = rule->msg;
         }
     }
 
@@ -166,7 +155,15 @@ ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
 {
     int       *captures, rc;
     ngx_uint_t n;
-    
+
+    if (str == NULL && rule->mod) {
+        ctx->matched = 1;
+        return NGX_OK;
+    }
+
+    if (str == NULL)
+        return NGX_ERROR;
+
     /* Simply match basic rule with the args.
       TODO: regx->low sec, string->medium sec, char->high sec. */
     if (rule->rgc != NULL) {
@@ -192,12 +189,14 @@ ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
             return NGX_ERROR;
         } else {
             ctx->matched_rule = &rule->rgc->pattern;
+            ctx->matched = 1;
             return NGX_OK;
         }
     } else if (rule->str != NULL) {
         /* STR */
         if (ngx_strnstr(str->data, (char*) rule->str->data, str->len)) {
             ctx->matched_rule = rule->str;
+            ctx->matched = 1;
             return NGX_OK;
         }
     }
@@ -521,7 +520,12 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             
             ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] rule(%V)", &uncommon_filename_postfix.rgc->pattern);
             yy_sec_waf_apply_mod_rule(r, &filename, uncommon_filename_postfix, ctx);
-            
+
+            idx += (u_char*)body_end - (full_body->data + idx);
+        } else if (name.data) {
+            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+                "[waf] checking name [%V]", &name);
+
             idx += (u_char*)body_end - (full_body->data + idx);
         }
 
