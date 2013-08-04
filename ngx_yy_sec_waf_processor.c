@@ -78,6 +78,7 @@ static ngx_http_yy_sec_waf_rule_t uncommon_filename = {
     .block = 1,
 };
 
+/* For those unused mod rules, we just set mod flag as false. */
 ngx_http_yy_sec_waf_rule_t *mod_rules[] = {
     &wired_request,
     &uncommon_hex_encoding,
@@ -102,11 +103,12 @@ static ngx_int_t ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
     ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx);
 
 #define yy_sec_waf_apply_mod_rule(r, str, rule, ctx) do {        \
-    if (rule.mod) {                                             \
-        ngx_http_yy_sec_waf_apply_mod_rule(r, str, &rule, ctx);   \
+    if (rule.mod) {                                              \
+        ngx_http_yy_sec_waf_apply_mod_rule(r, str, &rule, ctx);  \
         if (ctx->matched) {                                      \
     		ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,  \
-                "[waf] rule matched");                           \
+                "[waf] mod rule(id:%d) matched in func:%s file:%s line:%d",      \
+                 ctx->rule_id, __func__, __FILE__, __LINE__);    \
             return NGX_ERROR;                                    \
         }                                                        \
     }                                                            \
@@ -332,6 +334,7 @@ ngx_http_yy_sec_waf_process_disposition(ngx_http_request_t *r,
         else if (!ngx_strncmp(str, "filename=\"", ngx_strlen("filename=\""))) {
             filename_end = filename_start = str + ngx_strlen("filename=\"");
             do {
+                /* ignore 0x00 for %00 injection situation */
                 filename_end = (u_char*) ngx_strlchr(filename_end, line_end, '"');
                 if (filename_end && *(filename_end - 1) != '\\')
                     break;
@@ -422,6 +425,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
         idx += ngx_strlen("content-disposition: form-data;");
 
+        /* ignore 0x00 for %00 injection situation */
         line_end = (u_char*) ngx_strlchr(full_body->data+idx, full_body->data+full_body->len, '\n');
         if (!line_end) {
             ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] 4");
@@ -688,20 +692,9 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
     }
 
     if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
-        (u_char*)"application/x-www-form-urlencoded", ngx_strlen("application/x-www-form-urlencoded"))) {
-        /* X_WWW_FORM_URLENCODED */
-    } else if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
         (u_char*)"multipart/form-data", ngx_strlen("multipart/form-data"))) {
         /* MULTIPART */
         ngx_http_yy_sec_waf_process_multipart(r, &full_body, ctx);
-    } else if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
-        (u_char*)"application/json", ngx_strlen("application/json"))) {
-        /* JSON */
-    } else {
-        /* unkown content type */
-		ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] unkown contenty type");
-        ngx_http_yy_sec_waf_apply_mod_rule(r, NULL, &uncommon_content_type, ctx);
-        return;
     }
 
     ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_body Exit");
