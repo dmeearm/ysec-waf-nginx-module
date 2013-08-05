@@ -84,10 +84,10 @@ static ngx_int_t ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
         ctx->rule_id, __func__, __LINE__); 			             \
     if (rule.mod) {                                              \
         ngx_http_yy_sec_waf_apply_mod_rule(r, str, &rule, ctx);  \
-        if (ctx->matched && ctx->block) {                        \
-            return NGX_ERROR;                                    \
-        }                                                        \
-    }                                                            \
+        if (ctx->matched)                                        \
+            return NGX_OK;                                       \
+    } else                                                       \
+        return NGX_ERROR;                                        \
 } while (0)
 
 /*
