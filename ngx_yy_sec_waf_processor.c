@@ -215,11 +215,12 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     }
 
     if (ctx->matched_rule != NULL) {
-		ctx->matched = 1;
-		ctx->block = rule_p->block;
-		ctx->log = rule_p->log;
-		ctx->gids = rule_p->gids;
-		ctx->msg = rule_p->msg;
+        ctx->matched = 1;
+        ctx->rule_id = rule_p->rule_id;
+        ctx->block = rule_p->block;
+        ctx->log = rule_p->log;
+        ctx->gids = rule_p->gids;
+        ctx->msg = rule_p->msg;
     }
 
     return NGX_OK;
@@ -367,7 +368,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         yy_sec_waf_apply_mod_rule(r, NULL, uncommon_post_boundary, ctx);
 	}
 
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] boundary: %V", {boundary_len, boundary});
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] boundary: %s", boundary);
 
     idx = 0;
 
