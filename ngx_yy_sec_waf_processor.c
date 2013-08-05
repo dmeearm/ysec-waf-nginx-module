@@ -80,8 +80,8 @@ static ngx_int_t ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
 
 #define yy_sec_waf_apply_mod_rule(r, str, rule, ctx) do {        \
     ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,          \
-        "[waf] mod rule(id:%d) matched in func:%s line:%d", 	 \
-        ctx->rule_id, __func__, __LINE__); 			             \
+        "[waf] apply mod rule in func:%s line:%d",               \
+        __func__, __LINE__);                                     \
     if (rule.mod) {                                              \
         ngx_http_yy_sec_waf_apply_mod_rule(r, str, &rule, ctx);  \
         if (ctx->matched)                                        \
@@ -354,6 +354,8 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     ngx_str_t *full_body, ngx_http_request_ctx_t *ctx)
 {
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_multipart Entry");
+
     u_char *boundary, *line_start, *line_end, *body_end;
     ngx_uint_t boundary_len, idx, nullbytes;
     ngx_str_t name, filename, content_type;
@@ -365,15 +367,17 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         yy_sec_waf_apply_mod_rule(r, NULL, uncommon_post_boundary, ctx);
 	}
 
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] boundary: %V", {boundary_len, boundary});
+
     idx = 0;
 
     while (idx < full_body->len) {
 		ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] request_body: %s", full_body->data+idx);
 
         if (idx+boundary_len+6 == full_body->len || idx+boundary_len+4 == full_body->len) {
-            if (ngx_strncmp(full_body->data+idx, "--", 2) ||
-                ngx_strncmp(full_body->data+idx+2, boundary, boundary_len) ||
-                ngx_strncmp(full_body->data+idx+boundary_len+2, "--", 2)) {
+            if (ngx_strncmp(full_body->data+idx, "--", 2)
+                || ngx_strncmp(full_body->data+idx+2, boundary, boundary_len)
+                || ngx_strncmp(full_body->data+idx+boundary_len+2, "--", 2)) {
                 yy_sec_waf_apply_mod_rule(r, NULL, uncommon_post_boundary, ctx);
             } else
                 break;
@@ -487,10 +491,8 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
                 }
             }
 
-            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] rule(%V)", &special_file_charactor.rgc->pattern);
             yy_sec_waf_apply_mod_rule(r, &filename, special_file_charactor, ctx);
             
-            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] rule(%V)", &uncommon_filename_postfix.rgc->pattern);
             yy_sec_waf_apply_mod_rule(r, &filename, uncommon_filename_postfix, ctx);
 
             idx += (u_char*)body_end - (full_body->data + idx);
@@ -506,6 +508,8 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 			ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] idx(%d), len(%d)", idx, full_body->len);
             idx += ngx_strlen("\r\n");
     }
+
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_multipart Exit");
 
     return NGX_OK;
 }
@@ -685,12 +689,10 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
     if (cf == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[waf] ngx_http_get_module_loc_conf failed.");
         return NGX_ERROR;
     }
 
     if (ctx == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[waf] ngx_http_get_module_ctx failed.");
         return NGX_ERROR;
     }
 
