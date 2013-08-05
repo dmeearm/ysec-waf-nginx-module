@@ -63,6 +63,7 @@ typedef struct {
     ngx_array_t *args_rules;
     ngx_array_t *uri_rules;
 
+    ngx_uint_t method_bitmask;
     ngx_flag_t enabled;
 } ngx_http_yy_sec_waf_loc_conf_t;
 
