@@ -131,11 +131,13 @@ ngx_http_yy_sec_waf_parse_mod(ngx_conf_t *cf,
     mod.data = tmp->data + ngx_strlen(MOD);
     mod.len = tmp->len - ngx_strlen(MOD);
 
-	if (!ngx_strncasecmp(mod.data, (u_char*)"off", mod.len)) {
+    if (!ngx_strncasecmp(mod.data, (u_char*)"off", mod.len)) {
         rule->mod = 0;
-	} else if (!ngx_strncasecmp(mod.data, (u_char*)"on", mod.len)) {
+    } else if (!ngx_strncasecmp(mod.data, (u_char*)"on", mod.len)) {
         rule->mod = 1;
-	}
+    } else {
+        return NGX_CONF_ERROR;
+    }
 
     return NGX_CONF_OK;
 }
