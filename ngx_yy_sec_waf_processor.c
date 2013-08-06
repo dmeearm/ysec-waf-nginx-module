@@ -8,53 +8,40 @@
 
 #include "ngx_yy_sec_waf.h"
 
-static ngx_http_yy_sec_waf_rule_t uncommon_hex_encoding = {
-    .mod = 1,
-    .rule_id = 1,
-    .log = 1,
-    .block =1,
-};
 
 static ngx_http_yy_sec_waf_rule_t uncommon_content_type = {
     .mod = 0,
-    .rule_id = 2,
-    .log = 1,
-    .block =1,
+    .rule_id = 1,
 };
 
 static ngx_http_yy_sec_waf_rule_t uncommon_post_format = {
     .mod = 0,
-    .rule_id = 3,
-    .log = 1,
-    .block =1,
+    .rule_id = 2,
 };
 
 static ngx_http_yy_sec_waf_rule_t uncommon_post_boundary = {
     .mod = 0,
-    .rule_id = 4,
-    .log = 1,
-    .block =1,
+    .rule_id = 3,
 };
 
 static ngx_http_yy_sec_waf_rule_t special_file_charactor = {
     .mod = 0,
+    .rule_id = 4,
+};
+
+static ngx_http_yy_sec_waf_rule_t uncommon_hex_encoding = {
+    .mod = 0,
     .rule_id = 5,
-    .log = 1,
-    .block =1,
 };
 
 static ngx_http_yy_sec_waf_rule_t uncommon_filename_postfix = {
-    .mod = 1,
+    .mod = 0,
     .rule_id = 6,
-    .log = 1,
-    .block = 1,
 };
 
 static ngx_http_yy_sec_waf_rule_t uncommon_filename = {
-    .mod = 1,
+    .mod = 0,
     .rule_id = 7,
-    .log = 1,
-    .block = 1,
 };
 
 /* For those unused mod rules, we just set mod flag as false. */
