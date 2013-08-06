@@ -79,7 +79,7 @@ static ngx_int_t ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
     ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx);
 
 #define yy_sec_waf_apply_mod_rule(r, str, rule, ctx) do {        \
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,          \
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,     \
         "[waf] apply mod rule in func:%s line:%d",               \
         __func__, __LINE__);                                     \
     if (rule.mod) {                                              \
@@ -161,7 +161,7 @@ ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
         if (rc == NGX_REGEX_NO_MATCHED) {
             return NGX_OK;
         } else if (rc < NGX_REGEX_NO_MATCHED) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
                 rc, str, &rule->rgc->pattern);
             return NGX_ERROR;
@@ -355,7 +355,7 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     ngx_str_t *full_body, ngx_http_request_ctx_t *ctx)
 {
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_multipart Entry");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_multipart Entry");
 
     u_char *boundary, *line_start, *line_end, *body_end;
     ngx_uint_t boundary_len, idx, nullbytes;
@@ -368,12 +368,12 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         yy_sec_waf_apply_mod_rule(r, NULL, uncommon_post_boundary, ctx);
 	}
 
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] boundary: %s", boundary);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] boundary: %s", boundary);
 
     idx = 0;
 
     while (idx < full_body->len) {
-		ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] request_body: %s", full_body->data+idx);
+		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] request_body: %s", full_body->data+idx);
 
         if (idx+boundary_len+6 == full_body->len || idx+boundary_len+4 == full_body->len) {
             if (ngx_strncmp(full_body->data+idx, "--", 2)
@@ -408,14 +408,12 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         if (!line_end) {
             return NGX_ERROR;
         }
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] idx(%d), len(%d)", idx, full_body->len);
 
         ngx_memzero(&name, sizeof(ngx_str_t));
         ngx_memzero(&filename, sizeof(ngx_str_t));
         ngx_memzero(&content_type, sizeof(ngx_str_t));
 
         ngx_http_yy_sec_waf_process_disposition(r, full_body->data+idx, line_end, &name, &filename);
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] idx(%d), len(%d)", idx, full_body->len);
 
         if (filename.data) {
             line_start = line_end + 1;
@@ -427,7 +425,6 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             content_type.data = line_start + ngx_strlen("content-type: ");
             content_type.len = (line_end - 1) - content_type.data;
         }
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] idx(%d), len(%d)", idx, full_body->len);
 
         idx += (u_char*)line_end - (full_body->data + idx) + 1;
         if (full_body->data[idx] != '\r' || full_body->data[idx+1] != '\n') {
@@ -436,7 +433,6 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
         idx += 2;
         body_end = NULL;
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] idx(%d), len(%d)", idx, full_body->len);
 
         while (idx < full_body->len) {
             body_end = (u_char*) ngx_strstr(full_body->data+idx, "\r\n--");
@@ -471,11 +467,11 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
                 yy_sec_waf_apply_mod_rule(r, NULL, uncommon_hex_encoding, ctx);
             }
 
-            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "[waf] checking filename [%V]", &filename);
 
             if (content_type.data) {
-				ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
 					"[waf] checking content_type [%V]", &content_type);
 
                 if (!ngx_strnstr(filename.data, ".html", filename.len)
@@ -498,19 +494,17 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
             idx += (u_char*)body_end - (full_body->data + idx);
         } else if (name.data) {
-            ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0,
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "[waf] checking name [%V]", &name);
 
             idx += (u_char*)body_end - (full_body->data + idx);
         }
 
-        ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] idx(%d), len(%d)", idx, full_body->len);
         if (!ngx_strncmp(body_end, "\r\n", ngx_strlen("\r\n")))
-			ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] idx(%d), len(%d)", idx, full_body->len);
             idx += ngx_strlen("\r\n");
     }
 
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_multipart Exit");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_multipart Exit");
 
     return NGX_OK;
 }
@@ -527,7 +521,7 @@ static void
 ngx_http_yy_sec_waf_process_headers(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_headers entry");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_headers Entry");
 
     ngx_list_part_t *part;
     ngx_table_elt_t *h;
@@ -548,6 +542,8 @@ ngx_http_yy_sec_waf_process_headers(ngx_http_request_t *r,
 
         ngx_http_yy_sec_waf_process_basic_rules(r, &h[i].value, cf->header_rules, ctx);
 	}
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_headers Exit");
 }
 
 /*
@@ -562,7 +558,7 @@ static void
 ngx_http_yy_sec_waf_process_uri(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_uri Entry");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_uri Entry");
 
     ngx_str_t  tmp;
 
@@ -579,7 +575,7 @@ ngx_http_yy_sec_waf_process_uri(ngx_http_request_t *r,
 
     ngx_pfree(r->pool, tmp.data);
 
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_uri Exit");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_uri Exit");
 }
 
 /*
@@ -594,7 +590,7 @@ static void
 ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_args Entry");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_args Entry");
 
     ngx_str_t  tmp;
 
@@ -612,7 +608,7 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
 
     ngx_pfree(r->pool, tmp.data);
 	
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_args Exit");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_args Exit");
 }
 
 /*
@@ -627,7 +623,7 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
-	ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_body Entry");
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_body Entry");
 
     u_char      *src;
     ngx_chain_t *bb;
@@ -668,7 +664,7 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         ngx_http_yy_sec_waf_process_multipart(r, &full_body, ctx);
     }
 
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_body Exit");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_body Exit");
 
     return NGX_OK;
 }
@@ -682,18 +678,15 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
 ngx_int_t
 ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
 {
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_request entry");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_request Entry");
+
     ngx_http_yy_sec_waf_loc_conf_t *cf;
     ngx_http_request_ctx_t         *ctx;
 
 	cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
-    if (cf == NULL) {
-        return NGX_ERROR;
-    }
-
-    if (ctx == NULL) {
+    if (cf == NULL || cf == NULL) {
         return NGX_ERROR;
     }
 
@@ -712,7 +705,7 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
         ngx_http_yy_sec_waf_process_body(r, cf, ctx);
     }
 
-	ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_request exit");
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_process_request Exit");
 
     return NGX_OK;
 }
