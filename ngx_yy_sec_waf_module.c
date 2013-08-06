@@ -44,11 +44,11 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
       offsetof(ngx_http_yy_sec_waf_loc_conf_t, enabled),
       NULL },
 
-    { ngx_string("enabled_method"),
+    { ngx_string("http_method"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_conf_set_bitmask_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_yy_sec_waf_loc_conf_t, method_bitmask),
+      offsetof(ngx_http_yy_sec_waf_loc_conf_t, http_method),
       &ngx_yy_sec_waf_method_bitmask },
 
     { ngx_string("basic_rule"),
@@ -135,7 +135,7 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->enabled, prev->enabled, 1);
 
-    ngx_conf_merge_bitmask_value(conf->method_bitmask, prev->method_bitmask, 0);
+    ngx_conf_merge_bitmask_value(conf->http_method, prev->http_method, 0);
 
     return NGX_CONF_OK;
 }
@@ -208,9 +208,9 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    if (cf->method_bitmask)
-        if (!(r->method & cf->method_bitmask)) {
-            ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] method isn't supported.");
+    if (cf->http_method)
+        if (!(r->method & cf->http_method)) {
+            ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] http method isn't supported.");
             return NGX_HTTP_NOT_ALLOWED;
     }
 
