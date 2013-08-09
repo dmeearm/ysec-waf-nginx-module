@@ -26,22 +26,22 @@ static ngx_http_yy_sec_waf_rule_t uncommon_post_boundary = {
 
 static ngx_http_yy_sec_waf_rule_t special_file_charactor = {
     .mod = 0,
-    .rule_id = 4,
+    .rule_id = 1201,
 };
 
 static ngx_http_yy_sec_waf_rule_t uncommon_hex_encoding = {
     .mod = 0,
-    .rule_id = 5,
+    .rule_id = 1202,
 };
 
 static ngx_http_yy_sec_waf_rule_t uncommon_filename_postfix = {
     .mod = 0,
-    .rule_id = 6,
+    .rule_id = 1203,
 };
 
 static ngx_http_yy_sec_waf_rule_t uncommon_filename = {
     .mod = 0,
-    .rule_id = 7,
+    .rule_id = 1204,
 };
 
 /* For those unused mod rules, we just set mod flag as false. */
@@ -197,17 +197,16 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
         if (rc == NGX_ERROR)
             return rc;
 
-        if (ctx->matched_rule)
+        if (ctx->matched)
             break;
     }
 
-    if (ctx->matched_rule != NULL) {
-        ctx->matched = 1;
-        ctx->rule_id = rule_p->rule_id;
-        ctx->block = rule_p->block;
-        ctx->log = rule_p->log;
-        ctx->gids = rule_p->gids;
-        ctx->msg = rule_p->msg;
+    if (ctx->matched) {
+        ctx->rule_id = rule_p[i].rule_id;
+        ctx->block = rule_p[i].block;
+        ctx->log = rule_p[i].log;
+        ctx->gids = rule_p[i].gids;
+        ctx->msg = rule_p[i].msg;
     }
 
     return NGX_OK;
