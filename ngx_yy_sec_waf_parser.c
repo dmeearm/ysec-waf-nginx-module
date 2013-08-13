@@ -409,3 +409,36 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
     return NGX_CONF_OK;
 }
 
+/*
+** @description: This function is called to read denied url of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+char *
+ngx_http_yy_sec_waf_read_du_loc_conf(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf)
+{
+    ngx_http_yy_sec_waf_loc_conf_t *p = conf;
+    ngx_str_t *value;
+
+    value = cf->args->elts;
+    if (value[1].len == 0)
+        return NGX_CONF_ERROR;
+
+    p->denied_url = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+    if (!p->denied_url)
+        return NGX_CONF_ERROR;
+
+    p->denied_url->data = ngx_pcalloc(cf->pool, value[1].len+1);
+    if (!p->denied_url->data)
+        return NGX_CONF_ERROR;
+
+    ngx_memcpy(p->denied_url->data, value[1].data, value[1].len);
+    p->denied_url->len = value[1].len;
+
+    return NGX_CONF_OK;
+}
+

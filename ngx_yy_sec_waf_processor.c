@@ -153,14 +153,12 @@ ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
                 rc, str, &rule->rgc->pattern);
             return NGX_ERROR;
         } else {
-            ctx->matched_rule = &rule->rgc->pattern;
             ctx->matched = 1;
             return NGX_OK;
         }
     } else if (rule->str != NULL) {
         /* STR */
         if (ngx_strnstr(str->data, (char*) rule->str->data, str->len)) {
-            ctx->matched_rule = rule->str;
             ctx->matched = 1;
             return NGX_OK;
         }

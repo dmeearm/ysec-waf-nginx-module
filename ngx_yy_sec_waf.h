@@ -63,6 +63,7 @@ typedef struct {
     ngx_array_t *args_rules;
     ngx_array_t *uri_rules;
 
+    ngx_str_t *denied_url;
     ngx_uint_t http_method;
     ngx_flag_t enabled;
 } ngx_http_yy_sec_waf_loc_conf_t;
@@ -78,7 +79,6 @@ typedef struct {
 
     ngx_flag_t    matched:1;
     ngx_int_t     rule_id;
-    ngx_str_t    *matched_rule;
     ngx_str_t    *gids;
     ngx_str_t    *msg;
 } ngx_http_request_ctx_t;
