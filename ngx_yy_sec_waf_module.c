@@ -254,6 +254,8 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     if (ctx && ctx->read_body_done && !ctx->process_done) {
         rc = ngx_http_yy_sec_waf_process_request(r);
 
+        cf->request_processed++;
+
         if (rc != NGX_OK) {
 			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[waf] ngx_http_yy_sec_waf_process_request failed.");
             return rc;
@@ -262,8 +264,14 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         ctx->process_done = 1;
 
         if (ctx->matched) {
+            cf->request_matched++;
+
+            if (ctx->block)
+                cf->request_blocked++;
+
     		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-    					   "[waf] rule_id(%d) matched", ctx->rule_id);
+    					   "[waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d",
+    					   ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked);
 
             return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
         }
@@ -285,52 +293,54 @@ ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
     if (ctx->log && !ctx->block)
         return NGX_DECLINED;
 
-	cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
-
-    tmp_uri = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
-    if (!tmp_uri)
-        return NGX_ERROR;
-    
-    tmp_uri->len = r->uri.len + (2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len,
-        NGX_ESCAPE_ARGS));
-    tmp_uri->data = ngx_pcalloc(r->pool, tmp_uri->len+1);
-    ngx_escape_uri(tmp_uri->data, r->uri.data, r->uri.len, NGX_ESCAPE_ARGS);
-    
-    ngx_table_elt_t 	  *h;
-    
-    if (r->headers_in.headers.last)	{
-        h = ngx_list_push(&(r->headers_in.headers));
-        h->key.len = ngx_strlen("orig_url");
-        h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_url")+1);
-        ngx_memcpy(h->key.data, "orig_url", ngx_strlen("orig_url"));
-        h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_url") + 1);
-        ngx_memcpy(h->lowcase_key, "orig_url", ngx_strlen("orig_url"));
-        h->value.len = tmp_uri->len;
-        h->value.data = ngx_pcalloc(r->pool, tmp_uri->len+1);
-        ngx_memcpy(h->value.data, tmp_uri->data, tmp_uri->len);
-        
-        h = ngx_list_push(&(r->headers_in.headers));
-        h->key.len = ngx_strlen("orig_args");
-        h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_args")+1);
-        ngx_memcpy(h->key.data, "orig_args", ngx_strlen("orig_args"));
-        h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_args") + 1);
-        ngx_memcpy(h->lowcase_key, "orig_args", ngx_strlen("orig_args"));
-        h->value.len = r->args.len;
-        h->value.data = ngx_pcalloc(r->pool, r->args.len+1);
-        ngx_memcpy(h->value.data, r->args.data, r->args.len);
-        
-        h = ngx_list_push(&(r->headers_in.headers));
-        h->key.len = ngx_strlen("yy_sec_waf");
-        h->key.data = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf")+1);
-        ngx_memcpy(h->key.data, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
-        h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf") + 1);
-        ngx_memcpy(h->lowcase_key, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
-        h->value.len = empty.len;
-        h->value.data = empty.data;
-    }
+    cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
 
     if (cf->denied_url) {
+        tmp_uri = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
+        if (!tmp_uri)
+            return NGX_ERROR;
+        
+        tmp_uri->len = r->uri.len + (2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len,
+            NGX_ESCAPE_ARGS));
+        tmp_uri->data = ngx_pcalloc(r->pool, tmp_uri->len+1);
+    
+        ngx_escape_uri(tmp_uri->data, r->uri.data, r->uri.len, NGX_ESCAPE_ARGS);
+        
+        ngx_table_elt_t *h;
+        
+        if (r->headers_in.headers.last)	{
+            h = ngx_list_push(&(r->headers_in.headers));
+            h->key.len = ngx_strlen("orig_url");
+            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_url")+1);
+            ngx_memcpy(h->key.data, "orig_url", ngx_strlen("orig_url"));
+            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_url") + 1);
+            ngx_memcpy(h->lowcase_key, "orig_url", ngx_strlen("orig_url"));
+            h->value.len = tmp_uri->len;
+            h->value.data = ngx_pcalloc(r->pool, tmp_uri->len+1);
+            ngx_memcpy(h->value.data, tmp_uri->data, tmp_uri->len);
+            
+            h = ngx_list_push(&(r->headers_in.headers));
+            h->key.len = ngx_strlen("orig_args");
+            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_args")+1);
+            ngx_memcpy(h->key.data, "orig_args", ngx_strlen("orig_args"));
+            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_args") + 1);
+            ngx_memcpy(h->lowcase_key, "orig_args", ngx_strlen("orig_args"));
+            h->value.len = r->args.len;
+            h->value.data = ngx_pcalloc(r->pool, r->args.len+1);
+            ngx_memcpy(h->value.data, r->args.data, r->args.len);
+            
+            h = ngx_list_push(&(r->headers_in.headers));
+            h->key.len = ngx_strlen("yy_sec_waf");
+            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf")+1);
+            ngx_memcpy(h->key.data, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
+            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf") + 1);
+            ngx_memcpy(h->lowcase_key, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
+            h->value.len = empty.len;
+            h->value.data = empty.data;
+        }
+
         ngx_http_internal_redirect(r, cf->denied_url, &empty);
+
         return NGX_HTTP_OK;
     } else {
         return NGX_HTTP_PRECONDITION_FAILED;

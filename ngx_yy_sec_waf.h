@@ -66,6 +66,11 @@ typedef struct {
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
     ngx_flag_t enabled;
+
+    /* count */
+    ngx_uint_t    request_processed;
+    ngx_uint_t    request_matched;
+    ngx_uint_t    request_blocked;
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {
