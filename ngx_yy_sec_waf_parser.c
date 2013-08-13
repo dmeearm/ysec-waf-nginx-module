@@ -103,10 +103,9 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
     rgc->err.len = 0;
     rgc->err.data = NULL;
 
-    if (ngx_regex_compile(rgc) != NGX_OK)
+    rule->regex = ngx_http_regex_compile(cf, rgc);
+    if (rule->regex == NULL)
         return NGX_CONF_ERROR;
-
-    rule->rgc = rgc;
 
     return NGX_CONF_OK;
 }

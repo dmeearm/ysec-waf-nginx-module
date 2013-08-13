@@ -42,7 +42,7 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 typedef struct {
     ngx_str_t *str; /* STR */
-    ngx_regex_compile_t *rgc; /* REG */
+    ngx_http_regex_t *regex; /* REG */
     ngx_flag_t mod:1; /* MOD */
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */

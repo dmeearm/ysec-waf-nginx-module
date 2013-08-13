@@ -118,8 +118,7 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
     ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
-    int       *captures, rc;
-    ngx_uint_t n;
+    int rc;
 
     if (str == NULL && rule->mod) {
         ctx->matched = 1;
@@ -129,39 +128,23 @@ ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
     if (str == NULL)
         return NGX_ERROR;
 
-    /* Simply match basic rule with the args.
-      TODO: regx->low sec, string->medium sec, char->high sec. */
-    if (rule->rgc != NULL) {
+    if (rule->regex != NULL) {
         /* REGEX */
-        n = (rule->rgc->captures + 1) * 3;
+        rc = ngx_http_regex_exec(r, rule->regex, str);
         
-        captures = ngx_palloc(r->pool, n*sizeof(int));
-        
-        if (captures == NULL) {
-            return NGX_ERROR;
-        }
-        
-        rc = ngx_regex_exec(rule->rgc->regex, str, captures, n);
-        
-        ngx_pfree(r->pool, captures);
-        
-        if (rc == NGX_REGEX_NO_MATCHED) {
-            return NGX_OK;
-        } else if (rc < NGX_REGEX_NO_MATCHED) {
-            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                ngx_regex_exec_n " failed: %i on \"%V\" using \"%V\"",
-                rc, str, &rule->rgc->pattern);
-            return NGX_ERROR;
-        } else {
+        if (rc == NGX_OK) {
             ctx->matched = 1;
-            return NGX_OK;
         }
+
+        return rc;
     } else if (rule->str != NULL) {
         /* STR */
         if (ngx_strnstr(str->data, (char*) rule->str->data, str->len)) {
             ctx->matched = 1;
             return NGX_OK;
         }
+
+        return NGX_DECLINED;
     }
 
     return NGX_ERROR;
@@ -587,6 +570,8 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
     (void)ngx_memcpy(tmp.data, r->args.data, tmp.len);
 
     ngx_yy_sec_waf_unescape(&tmp);
+
+	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] decoded args:%V", &tmp);
 
     ngx_http_yy_sec_waf_process_basic_rules(r, &tmp, cf->args_rules, ctx);
 
