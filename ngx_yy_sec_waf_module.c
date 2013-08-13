@@ -273,6 +273,9 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     					   "[waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d",
     					   ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked);
 
+            if (ctx->log && !ctx->block)
+                return NGX_DECLINED;
+
             return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
         }
     }
@@ -282,6 +285,13 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     return NGX_DECLINED;
 }
 
+/*
+** @description: This function is called to redirect request url to the denied url of yy sec waf.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_request_ctx_t *ctx
+** @return: NGX_HTTP_OK or NGX_ERROR if failed.
+*/
+
 static ngx_int_t
 ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
     ngx_http_request_ctx_t *ctx)
@@ -289,9 +299,6 @@ ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf;
     ngx_str_t  empty = ngx_string("");
     ngx_str_t *tmp_uri;
-
-    if (ctx->log && !ctx->block)
-        return NGX_DECLINED;
 
     cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
 
