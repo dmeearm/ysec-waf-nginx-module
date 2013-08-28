@@ -353,8 +353,14 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         }
     }
 
+
     if (rule.mod) {
         return NGX_CONF_OK;
+    } else {
+        if (rule.regex == NULL && rule.str == NULL) {
+            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[waf] No regex or str for rule(id=%d)", rule.rule_id);
+            return NGX_CONF_ERROR;
+        }
     }
 
     if (rule.header) {
