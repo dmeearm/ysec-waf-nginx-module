@@ -194,6 +194,82 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
 }
 
 /*
+** @description: This function is called to process spliturl rules of the request.
+** @para: ngx_http_request_t *r
+** @para: ngx_str_t *str
+** @para: ngx_array_t *rules
+** @para: ngx_http_request_ctx_t *ctx
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+static ngx_int_t
+ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
+    ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
+{
+    u_char    *start, *buffer, *eq, *ev;
+    ngx_uint_t len, arg_len, nullbytes, buffer_size;
+    ngx_str_t  value;
+
+    if (rules == NULL)
+        return NGX_ERROR;
+
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] data=%p", str->data);
+
+    buffer = start = str->data;
+    len =  str->len;
+    buffer_size = arg_len = 0;
+
+    while ((len != 0) && *start) {
+        if (*start == '&') {
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] start=%p, buffer=%p", start, buffer);
+            buffer_size++;
+            *buffer++ = '$';
+            start++;
+            continue;
+        }
+
+        eq = (u_char*)ngx_strchr((char*)start, '=');
+        ev = (u_char*)ngx_strchr((char*)start, '&');
+
+        if (eq) {
+            if (!ev)
+                ev = str->data + str->len;
+			arg_len = ev - start;
+            eq = ngx_strlchr(start, start+arg_len, '=');
+            if (!eq)
+                return NGX_ERROR;
+
+            eq++;
+            value.data = eq;
+            value.len = ev - eq;
+        } else {
+            return NGX_ERROR;
+        }
+
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] value=%V, len=%d", &value, value.len);
+
+        nullbytes = ngx_yy_sec_waf_unescape(&value);
+
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] value=%V, nullbytes=%d", &value, nullbytes);
+
+		if (nullbytes > 0) {
+			yy_sec_waf_apply_mod_rule(r, NULL, uncommon_hex_encoding, ctx);
+		}
+
+        buffer = ngx_cpymem(buffer, value.data, value.len);
+        buffer_size += value.len;
+
+        start += arg_len;
+    }
+
+    str->len = buffer_size;
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] str=%V", str);
+
+    return ngx_http_yy_sec_waf_process_basic_rules(r, str, rules, ctx);
+}
+
+/*
 ** @description: This function is called to process the boundary of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_request_ctx_t *ctx
@@ -569,11 +645,9 @@ ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
 
     (void)ngx_memcpy(tmp.data, r->args.data, tmp.len);
 
-    ngx_yy_sec_waf_unescape(&tmp);
-
 	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] decoded args:%V", &tmp);
 
-    ngx_http_yy_sec_waf_process_basic_rules(r, &tmp, cf->args_rules, ctx);
+    ngx_http_yy_sec_waf_process_spliturl_rules(r, &tmp, cf->args_rules, ctx);
 
     ngx_pfree(r->pool, tmp.data);
 	

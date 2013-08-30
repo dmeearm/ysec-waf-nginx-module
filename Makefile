@@ -16,4 +16,4 @@ test:
 	prove -r t/*.t
 
 install:
-    cd $(shell pwd)/../../../../ && make install
+	cd $(shell pwd)/../../../../ && make install
