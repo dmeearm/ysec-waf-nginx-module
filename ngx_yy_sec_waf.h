@@ -65,6 +65,7 @@ typedef struct {
 
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
+    ngx_uint_t max_post_args_len;
     ngx_flag_t enabled;
 
     /* count */

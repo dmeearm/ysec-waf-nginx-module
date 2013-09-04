@@ -51,6 +51,13 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
       offsetof(ngx_http_yy_sec_waf_loc_conf_t, enabled),
       NULL },
 
+    { ngx_string("max_post_args_len"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_yy_sec_waf_loc_conf_t, max_post_args_len),
+      NULL },
+
     { ngx_string("http_method"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
       ngx_conf_set_bitmask_slot,
@@ -124,6 +131,7 @@ ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf)
     }
 
     conf->enabled = NGX_CONF_UNSET;
+    conf->max_post_args_len = NGX_CONF_UNSET_UINT;
 
     return conf;
 }
@@ -155,6 +163,8 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->enabled, prev->enabled, 1);
 
     ngx_conf_merge_bitmask_value(conf->http_method, prev->http_method, 0);
+
+    ngx_conf_merge_uint_value(conf->max_post_args_len, prev->max_post_args_len, 2048);
 
     return NGX_CONF_OK;
 }
