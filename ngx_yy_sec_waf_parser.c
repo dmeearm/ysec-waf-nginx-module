@@ -337,7 +337,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         for (i = 0; rule_parser[i].parse; i++) {
             if (!ngx_strncmp(value[n].data, rule_parser[i].type, ngx_strlen(rule_parser[i].type))) {
                 if (rule_parser[i].parse(cf, &value[n], &rule) != NGX_CONF_OK) {
-                    ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[waf] Failed parsing '%s'", value[n].data);
+                    ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%s'", value[n].data);
                     return NGX_CONF_ERROR;
                 }
     
@@ -358,7 +358,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         return NGX_CONF_OK;
     } else {
         if (rule.regex == NULL && rule.str == NULL) {
-            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[waf] No regex or str for rule(id=%d)", rule.rule_id);
+            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] No regex or str for rule(id=%d)", rule.rule_id);
             return NGX_CONF_ERROR;
         }
     }

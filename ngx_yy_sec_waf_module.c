@@ -208,7 +208,7 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 {
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Enter");
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_handler Enter");
 
     ngx_int_t                       rc;
     ngx_http_request_ctx_t         *ctx;
@@ -218,7 +218,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
     if (cf == NULL) {
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_get_module_loc_conf failed.");
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
         return NGX_ERROR;
     }
 
@@ -233,13 +233,13 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     }
 
     if (!cf->enabled) {
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] yy sec waf isn't enabled.");
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
         return NGX_DECLINED;
     }
 
     if (cf->http_method)
         if (!(r->method & cf->http_method)) {
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] http method isn't supported.");
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] http method isn't supported.");
             return NGX_HTTP_NOT_ALLOWED;
     }
 
@@ -259,7 +259,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             ctx->waiting_more_body = 1;
             return NGX_DONE;
         } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE || rc == NGX_ERROR) {
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[waf] ngx_http_read_client_request_body failed.");
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_read_client_request_body failed.");
             return rc;
         }
     } else {
@@ -272,7 +272,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         cf->request_processed++;
 
         if (rc != NGX_OK) {
-			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[waf] ngx_http_yy_sec_waf_process_request failed.");
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed.");
             return rc;
         }
 
@@ -285,7 +285,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
                 cf->request_blocked++;
 
     		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-    					   "[waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d",
+    					   "[ysec_waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d",
     					   ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked);
 
             if (ctx->log && !ctx->block)
@@ -295,7 +295,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         }
     }
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_handler Exit");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_handler Exit");
 
     return NGX_DECLINED;
 }
@@ -380,7 +380,7 @@ ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
 static void 
 ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
 {
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_request_body_handler Entry");
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_request_body_handler Entry");
 
     ngx_http_request_ctx_t    *ctx;
 
@@ -390,11 +390,11 @@ ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
 
     if (ctx->waiting_more_body) {
         ctx->waiting_more_body = 0;
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_core_run_phases Entry");
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_core_run_phases Entry");
         ngx_http_core_run_phases(r);
     }
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[waf] ngx_http_yy_sec_waf_request_body_handler Exit");
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_request_body_handler Exit");
 }
 
 
