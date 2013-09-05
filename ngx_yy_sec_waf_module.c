@@ -380,21 +380,20 @@ ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
 static void 
 ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
 {
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_request_body_handler Entry");
-
     ngx_http_request_ctx_t    *ctx;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
     ctx->read_body_done = 1;
-    r->count--;
+    r->main->count--;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "[ysec_waf] req body post read, c:%ud", r->main->count);
 
     if (ctx->waiting_more_body) {
         ctx->waiting_more_body = 0;
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_core_run_phases Entry");
         ngx_http_core_run_phases(r);
     }
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_request_body_handler Exit");
 }
 
 
