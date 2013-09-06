@@ -400,7 +400,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_multipart Entry");
 
-    u_char *boundary, *line_start, *line_end, *body_end;
+    u_char *boundary, *line_start, *line_end, *body_end, *p;
     ngx_uint_t boundary_len, idx, nullbytes;
     ngx_str_t name, filename, content_type;
 
@@ -414,6 +414,10 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] boundary: %s", boundary);
 
     idx = 0;
+
+    p = ngx_strlcasestrn(full_body->data, full_body->data+full_body->len, boundary, boundary_len-1);
+    full_body->len = full_body->len - (p - full_body->data - 2);
+    full_body->data = p - 2;
 
     while (idx < full_body->len) {
 		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] request_body: %s", full_body->data+idx);
