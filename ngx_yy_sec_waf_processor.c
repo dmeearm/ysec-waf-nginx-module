@@ -243,7 +243,7 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
             value.data = eq;
             value.len = ev - eq;
         } else {
-            return NGX_ERROR;
+            break;
         }
 
 		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, len=%d", &value, value.len);
