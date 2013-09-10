@@ -87,6 +87,7 @@ typedef struct {
     ngx_int_t     rule_id;
     ngx_str_t    *gids;
     ngx_str_t    *msg;
+    ngx_str_t    *matched_string;
 } ngx_http_request_ctx_t;
 
 

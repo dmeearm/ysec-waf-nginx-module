@@ -188,6 +188,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
         ctx->log = rule_p[i].log;
         ctx->gids = rule_p[i].gids;
         ctx->msg = rule_p[i].msg;
+        ctx->matched_string = str;
     }
 
     return NGX_OK;

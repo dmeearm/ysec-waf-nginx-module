@@ -285,8 +285,8 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
                 cf->request_blocked++;
 
     		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-    					   "[ysec_waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d",
-    					   ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked);
+    					   "[ysec_waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d, matched string=%V",
+    					   ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked, ctx->matched_string);
 
             if (ctx->log && !ctx->block)
                 return NGX_DECLINED;
