@@ -101,6 +101,7 @@ ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
             ctx->log = rule->log;
             ctx->gids = rule->gids;
             ctx->msg = rule->msg;
+            ctx->matched_string = str;
         }
     }
 
@@ -421,7 +422,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     full_body->data = p - 2;
 
     while (idx < full_body->len) {
-		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] request_body: %s", full_body->data+idx);
+		ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] request_body: %s, len: %d", full_body->data+idx, full_body->len);
 
         if (idx+boundary_len+6 == full_body->len || idx+boundary_len+4 == full_body->len) {
             if (ngx_strncmp(full_body->data+idx, "--", 2)
