@@ -24,6 +24,7 @@
 #define MSG "msg:"
 #define POS "pos:"
 #define LEVEL "lev:"
+#define WHITELIST "whitelist"
 
 /* POS */
 #define HEADER "HEADER"
@@ -44,6 +45,7 @@ typedef struct {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */
     ngx_flag_t mod:1; /* MOD */
+    ngx_flag_t is_wlr:1;
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */
     ngx_int_t  rule_id;
@@ -61,7 +63,7 @@ typedef struct {
 typedef struct {
     ngx_array_t *header_rules;/* ngx_http_yy_sec_waf_rule_t */
     ngx_array_t *args_rules;
-    ngx_array_t *uri_rules;
+    ngx_array_t *uri_rules; 
 
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
@@ -84,6 +86,7 @@ typedef struct {
     ngx_flag_t    waiting_more_body:1;
 
     ngx_flag_t    matched:1;
+    ngx_flag_t    is_wlr:1;
     ngx_int_t     rule_id;
     ngx_str_t    *gids;
     ngx_str_t    *msg;

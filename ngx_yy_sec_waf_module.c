@@ -290,10 +290,14 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
                     ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked, ctx->matched_string);
             }
 
-            if (ctx->log && !ctx->block)
-                return NGX_DECLINED;
+            if (!ctx->is_wlr) {
+                if (ctx->log && !ctx->block)
+                    return NGX_DECLINED;
+    
+                return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
+            }
 
-            return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
+            return NGX_DECLINED;
         }
     }
 

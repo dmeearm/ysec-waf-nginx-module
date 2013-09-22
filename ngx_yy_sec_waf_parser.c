@@ -32,6 +32,8 @@ static void *ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
+static void *ngx_http_yy_sec_waf_parse_whitelist(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 
 
 static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
@@ -43,6 +45,7 @@ static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
     { MSG, ngx_http_yy_sec_waf_parse_msg},
     { POS, ngx_http_yy_sec_waf_parse_pos},
     { LEVEL, ngx_http_yy_sec_waf_parse_level},
+    { WHITELIST, ngx_http_yy_sec_waf_parse_whitelist},
     { NULL, NULL}
 };
 
@@ -313,6 +316,22 @@ ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
 }
 
 /*
+** @description: This function is called to parse whitelist flag of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+ngx_http_yy_sec_waf_parse_whitelist(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
+{
+    rule->is_wlr = 1;
+    return NGX_CONF_OK;
+}
+
+/*
 ** @description: This function is called to read configuration of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_command_t *cmd
@@ -362,7 +381,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
             return NGX_CONF_ERROR;
         }
     }
-
+  
     if (rule.header) {
         if (p->header_rules == NULL) {
             p->header_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));

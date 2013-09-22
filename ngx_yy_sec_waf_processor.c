@@ -96,6 +96,7 @@ ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
         ngx_http_yy_sec_waf_process_basic_rule(r, str, rule, ctx);
 
         if (ctx->matched) {
+            ctx->is_wlr = rule->is_wlr;
             ctx->rule_id = rule->rule_id;
             ctx->block = rule->block;
             ctx->log = rule->log;
@@ -184,6 +185,7 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     }
 
     if (ctx->matched) {
+        ctx->is_wlr = rule_p[i].is_wlr;
         ctx->rule_id = rule_p[i].rule_id;
         ctx->block = rule_p[i].block;
         ctx->log = rule_p[i].log;
@@ -675,6 +677,7 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
 	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_body Entry");
 
     u_char      *src;
+    size_t       src_len;
     ngx_chain_t *bb;
     ngx_str_t    full_body;
 	
@@ -707,6 +710,7 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         full_body.data = src;
     }
 
+    ngx_yy_sec_waf_unescape(&full_body);
 
     if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
         (u_char*)"multipart/form-data", ngx_strlen("multipart/form-data"))) {
@@ -720,6 +724,19 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
                                                                       cf->max_post_args_len);
             return NGX_ERROR;
         }
+
+        /* convert \r\n to blank as '  ' to improve the format of error log */
+        src = full_body.data;
+        src_len = full_body.len;
+
+        while (full_body.len-- > 0) {
+            if (*full_body.data == '\n' || *full_body.data == '\r')
+                *full_body.data = ' ';
+            full_body.data++;
+        }
+
+        full_body.data = src;
+        full_body.len = src_len;
 
         ngx_http_yy_sec_waf_process_spliturl_rules(r, &full_body, cf->args_rules, ctx);
     }
