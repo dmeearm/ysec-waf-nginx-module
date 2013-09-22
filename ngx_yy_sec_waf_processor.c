@@ -729,14 +729,11 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         src = full_body.data;
         src_len = full_body.len;
 
-        while (full_body.len-- > 0) {
-            if (*full_body.data == '\n' || *full_body.data == '\r')
-                *full_body.data = ' ';
-            full_body.data++;
+        while (src_len-- > 0) {
+            if (*src == '\n' || *src == '\r')
+                *src = ' ';
+            src++;
         }
-
-        full_body.data = src;
-        full_body.len = src_len;
 
         ngx_http_yy_sec_waf_process_spliturl_rules(r, &full_body, cf->args_rules, ctx);
     }
