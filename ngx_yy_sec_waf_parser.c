@@ -12,7 +12,7 @@ extern ngx_http_yy_sec_waf_rule_t *mod_rules[];
 extern ngx_uint_t mod_rules_num;
 
 typedef struct {
-    const char *type;
+    char *type;
     void *(*parse)(ngx_conf_t *, ngx_str_t *, ngx_http_yy_sec_waf_rule_t *);
 } ngx_http_yy_sec_waf_parser_t;
 
@@ -354,7 +354,8 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 
     for (n = 1; n < cf->args->nelts; n++) {
         for (i = 0; rule_parser[i].parse; i++) {
-            if (!ngx_strncmp(value[n].data, rule_parser[i].type, ngx_strlen(rule_parser[i].type))) {
+            if (!ngx_strncasecmp((u_char*)value[n].data,
+                (u_char*)rule_parser[i].type, ngx_strlen(rule_parser[i].type))) {
                 if (rule_parser[i].parse(cf, &value[n], &rule) != NGX_CONF_OK) {
                     ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%s'", value[n].data);
                     return NGX_CONF_ERROR;
