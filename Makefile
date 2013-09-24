@@ -1,6 +1,7 @@
 with-debug:
 	cd $(shell pwd)/../../../../ && ./configure \
 		--add-module=$(shell pwd) \
+		--add-module=$(shell pwd)/../../../../../../../nginx_upstream_hash \
 		--without-mail_pop3_module \
 		--without-mail_smtp_module \
 		--without-mail_imap_module \
