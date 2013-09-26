@@ -1,7 +1,8 @@
 with-debug:
-	cd $(shell pwd)/../../../../ && ./configure \
+	cd $(shell pwd)/../../../../ && $(shell chmod +x $(shell pwd)/../../../../../3rdParty/*/configure) \
+		./configure \
 		--add-module=$(shell pwd) \
-		--add-module=$(shell pwd)/../../../../../../3rdParty/nginx_upstream_hash \
+		--add-module=$(shell pwd)/../../../../../3rdParty/nginx_upstream_hash \
 		--without-mail_pop3_module \
 		--without-mail_smtp_module \
 		--without-mail_imap_module \
@@ -9,9 +10,9 @@ with-debug:
 		--without-http_scgi_module \
 		--with-http_stub_status_module \
 		--with-http_ssl_module \
-		--with-zlib=$(shell pwd)/../../../../../../3rdParty/zlib-1.2.8 \
-		--with-openssl=$(shell pwd)/../../../../../../3rdParty/openssl-1.0.1e \
-		--with-pcre=$(shell pwd)/../../../../../../3rdParty/pcre-8.33 \
+		--with-zlib=$(shell pwd)/../../../../../3rdParty/zlib-1.2.8 \
+		--with-openssl=$(shell pwd)/../../../../../3rdParty/openssl-1.0.1e \
+		--with-pcre=$(shell pwd)/../../../../../3rdParty/pcre-8.33 \
 		--with-pcre-opt="-g -O1" \
 		--with-pcre-jit \
 		--with-debug && make
