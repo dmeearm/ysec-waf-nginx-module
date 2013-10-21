@@ -44,6 +44,11 @@ static ngx_http_yy_sec_waf_rule_t uncommon_filename = {
     .rule_id = 1204,
 };
 
+static ngx_http_yy_sec_waf_rule_t too_many_post_args = {
+    .mod = 0,
+    .rule_id = 1205,
+};
+
 /* For those unused mod rules, we just set mod flag as false. */
 ngx_http_yy_sec_waf_rule_t *mod_rules[] = {
     &uncommon_hex_encoding,
@@ -53,6 +58,7 @@ ngx_http_yy_sec_waf_rule_t *mod_rules[] = {
     &special_file_charactor,
     &uncommon_filename_postfix,
     &uncommon_filename,
+    &too_many_post_args,
     NULL
 };
 
@@ -211,7 +217,7 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
 {
     u_char    *start, *buffer, *eq, *ev;
-    ngx_uint_t len, arg_len, nullbytes, buffer_size;
+    ngx_uint_t len, arg_cnt, arg_len, nullbytes, buffer_size;
     ngx_str_t  value;
 
     if (rules == NULL)
@@ -223,11 +229,15 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     len =  str->len;
     buffer_size = arg_len = 0;
 
+    if (len != 0)
+        arg_cnt = 1;
+
     while ((len != 0) && *start) {
         if (*start == '&') {
             ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] start=%p, buffer=%p", start, buffer);
             buffer_size++;
             *buffer++ = '$';
+            arg_cnt++;
             start++;
             continue;
         }
@@ -269,6 +279,9 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     str->len = buffer_size;
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] str=%V", str);
+
+    if (r->method == NGX_HTTP_POST && arg_cnt > 2048)
+        yy_sec_waf_apply_mod_rule(r, NULL, too_many_post_args, ctx);
 
     return ngx_http_yy_sec_waf_process_basic_rules(r, str, rules, ctx);
 }
