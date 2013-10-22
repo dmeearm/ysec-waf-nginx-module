@@ -698,6 +698,11 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         yy_sec_waf_apply_mod_rule(r, NULL, uncommon_content_type, ctx);
     }
 
+    if (r->request_body->temp_file) {
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] post body is stored in temp_file.");
+        return NGX_ERROR;
+    }
+
     if (r->request_body->bufs->next == NULL) {
         full_body.len = (ngx_uint_t) (r->request_body->bufs->buf->last
             - r->request_body->bufs->buf->pos);
