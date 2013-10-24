@@ -240,6 +240,9 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
             arg_cnt++;
             start++;
             continue;
+        } else if (*start == '\r' || *start == '\n') {
+            /* convert \r\n to blank as '  ' to improve the format of error log */
+            *start = ' ';
         }
 
         eq = (u_char*)ngx_strchr((char*)start, '=');
@@ -690,7 +693,6 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
 	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_body Entry");
 
     u_char      *src;
-    size_t       src_len;
     ngx_chain_t *bb;
     ngx_str_t    full_body;
 	
@@ -743,16 +745,6 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
             return NGX_ERROR;
         }
 
-        /* convert \r\n to blank as '  ' to improve the format of error log */
-        src = full_body.data;
-        src_len = full_body.len;
-
-        while (src_len-- > 0) {
-            if (*src == '\n' || *src == '\r')
-                *src = ' ';
-            src++;
-        }
-
         ngx_http_yy_sec_waf_process_spliturl_rules(r, &full_body, cf->args_rules, ctx);
     }
 
@@ -781,6 +773,7 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
     if (cf == NULL || cf == NULL) {
         return NGX_ERROR;
     }
+
 
     if (cf->header_rules != NULL)
         ngx_http_yy_sec_waf_process_headers(r, cf, ctx);
