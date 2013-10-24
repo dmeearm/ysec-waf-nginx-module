@@ -240,9 +240,6 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
             arg_cnt++;
             start++;
             continue;
-        } else if (*start == '\r' || *start == '\n') {
-            /* convert \r\n to blank as '  ' to improve the format of error log */
-            *start = ' ';
         }
 
         eq = (u_char*)ngx_strchr((char*)start, '=');
@@ -285,6 +282,15 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
 
     if (r->method == NGX_HTTP_POST && arg_cnt > 2048)
         yy_sec_waf_apply_mod_rule(r, NULL, too_many_post_args, ctx);
+
+    /* convert \r\n to blank as '  ' to improve the format of error log */
+    buffer = str->data;
+
+    while (buffer_size-- > 0) {
+        if (*buffer == '\n' || *buffer == '\r')
+            *buffer = ' ';
+        buffer++;
+    }
 
     return ngx_http_yy_sec_waf_process_basic_rules(r, str, rules, ctx);
 }
