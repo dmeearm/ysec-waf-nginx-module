@@ -66,8 +66,6 @@ const ngx_uint_t mod_rules_num = sizeof(mod_rules)/sizeof(ngx_http_yy_sec_waf_ru
 
 static ngx_int_t ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t* r,
     ngx_str_t* str, ngx_http_request_ctx_t* ctx);
-static ngx_int_t ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
-    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx);
 static ngx_int_t ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
     ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx);
 
@@ -95,11 +93,21 @@ static ngx_int_t
 ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
     ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
+    int rc;
+
     if (rule == NULL || ctx == NULL)
         return NGX_ERROR;
 
     if (rule->mod) {
-        ngx_http_yy_sec_waf_process_basic_rule(r, str, rule, ctx);
+        rc = rule->op_metadata->execute(r, str, rule);
+
+        if (rc == NGX_ERROR) {
+            return rc;
+        } else if (rc == RULE_MATCH) {
+            ctx->matched = 1;
+        } else if (rc == RULE_NO_MATCH) {
+            return NGX_DECLINED;
+        }
 
         if (ctx->matched) {
             ctx->rule_id = rule->rule_id;
@@ -113,66 +121,6 @@ ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
     }
 
     return NGX_OK;
-}
-
-/*
-** @description: This function is called to process basic rule of the request.
-** @para: ngx_str_t *str
-** @para: ngx_http_yy_sec_waf_rule_t *rule
-** @return: NGX_OK or NGX_ERROR if failed.
-*/
-
-static ngx_int_t
-ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
-    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
-{
-    int rc;
-
-    if (str == NULL && rule->mod) {
-        ctx->matched = 1;
-        return NGX_OK;
-    }
-
-    if (rule->regex != NULL) {
-        /* REGEX */
-        rc = ngx_http_regex_exec(r, rule->regex, str);
-        
-        if (rc == NGX_OK) {
-            ctx->matched = 1;
-        }
-
-        return rc;
-    } else if (rule->str != NULL) {
-        /* STR */
-        if (ngx_strnstr(str->data, (char*) rule->str->data, str->len)) {
-            ctx->matched = 1;
-            return NGX_OK;
-        }
-
-        return NGX_DECLINED;
-    } else if (rule->eq != NULL) {
-        /* EQ */
-        ngx_http_variable_value_t    *vv;
-
-        if (rule->var_index != NGX_CONF_UNSET) {
-            vv = ngx_http_get_indexed_variable(r, rule->var_index);
-		
-            if (vv == NULL || vv->not_found) {
-                return NGX_DECLINED;
-            }
-		
-            if ((vv->len == rule->eq->len)
-                && (ngx_memcmp(vv->data, rule->eq->data, vv->len) == 0))
-            {
-                ctx->matched = 1;
-                return NGX_OK;
-            }
-        }
-
-        return NGX_DECLINED;
-    }	
-
-    return NGX_ERROR;
 }
 
 /*
@@ -198,13 +146,19 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     rule_p = rules->elts;
 
     for (i = 0; i < rules->nelts; i++) {
-        rc = ngx_http_yy_sec_waf_process_basic_rule(r, str, &rule_p[i], ctx);
+        rc = rule_p[i].op_metadata->execute(r, str, &rule_p[i]);
 
-        if (rc == NGX_ERROR)
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] data=%d", rc);
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] str=%s", rule_p[i].op_metadata->name);
+
+        if (rc == NGX_ERROR) {
             return rc;
-
-        if (ctx->matched)
+        } else if (rc == RULE_MATCH) {
+            ctx->matched = 1;
             break;
+        } else if (rc == RULE_NO_MATCH) {
+            continue;
+        }
     }
 
     if (ctx->matched) {

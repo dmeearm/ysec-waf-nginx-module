@@ -12,16 +12,10 @@ extern ngx_http_yy_sec_waf_rule_t *mod_rules[];
 extern ngx_uint_t mod_rules_num;
 
 typedef struct {
-    char *type;
+    const char *type;
     void *(*parse)(ngx_conf_t *, ngx_str_t *, ngx_http_yy_sec_waf_rule_t *);
 } ngx_http_yy_sec_waf_parser_t;
 
-static void *ngx_http_yy_sec_waf_parse_str(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
-static void *ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
-static void *ngx_http_yy_sec_waf_parse_eq(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_mod(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_gids(ngx_conf_t *cf,
@@ -37,9 +31,6 @@ static void *ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
 
 
 static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
-    { STR, ngx_http_yy_sec_waf_parse_str},
-    { REGEX, ngx_http_yy_sec_waf_parse_regex},
-    { EQ, ngx_http_yy_sec_waf_parse_eq},
     { MOD, ngx_http_yy_sec_waf_parse_mod},
     { GIDS, ngx_http_yy_sec_waf_parse_gids},
     { ID, ngx_http_yy_sec_waf_parse_rule_id},
@@ -48,99 +39,6 @@ static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
     { LEVEL, ngx_http_yy_sec_waf_parse_level},
     { NULL, NULL}
 };
-
-/*
-** @description: This function is called to parse str of yy sec waf.
-** @para: ngx_conf_t *cf
-** @para: ngx_str_t *tmp
-** @para: ngx_http_yy_sec_waf_rule_t *rule
-** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
-*/
-
-static void *
-ngx_http_yy_sec_waf_parse_str(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
-{
-    ngx_str_t *str;
-
-    if (!rule)
-        return NGX_CONF_ERROR;
-
-    str = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
-    if (!str)
-        return NGX_CONF_ERROR;
-
-    str->data = tmp->data + ngx_strlen(STR);
-    str->len = tmp->len - ngx_strlen(STR);
-
-    rule->str = str;
-
-    return NGX_CONF_OK;
-}
-
-/*
-** @description: This function is called to parse regex of yy sec waf.
-** @para: ngx_conf_t *cf
-** @para: ngx_str_t *tmp
-** @para: ngx_http_yy_sec_waf_rule_t *rule
-** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
-*/
-
-static void *
-ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
-{
-    ngx_regex_compile_t *rgc;
-    ngx_str_t            pattern;
-
-    pattern.data = tmp->data + ngx_strlen(REGEX);
-    pattern.len = tmp->len - ngx_strlen(REGEX);
-
-    rgc = ngx_pcalloc(cf->pool, sizeof(ngx_regex_compile_t));
-    if (!rgc)
-        return NGX_CONF_ERROR;
-
-    rgc->options = PCRE_CASELESS|PCRE_MULTILINE;
-    rgc->pattern = pattern;
-    rgc->pool = cf->pool;
-    rgc->err.len = 0;
-    rgc->err.data = NULL;
-
-    rule->regex = ngx_http_regex_compile(cf, rgc);
-    if (rule->regex == NULL)
-        return NGX_CONF_ERROR;
-
-    return NGX_CONF_OK;
-}
-
-/*
-** @description: This function is called to parse eq of yy sec waf.
-** @para: ngx_conf_t *cf
-** @para: ngx_str_t *tmp
-** @para: ngx_http_yy_sec_waf_rule_t *rule
-** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
-*/
-
-static void *
-ngx_http_yy_sec_waf_parse_eq(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
-{
-    ngx_str_t *eq;
-
-    if (!rule)
-        return NGX_CONF_ERROR;
-
-    eq = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
-    if (!eq)
-        return NGX_CONF_ERROR;
-
-    eq->data = tmp->data + ngx_strlen(EQ);
-    eq->len = tmp->len - ngx_strlen(EQ);
-
-    rule->eq = eq;
-
-    return NGX_CONF_OK;
-}
 
 /*
 ** @description: This function is called to parse mod of yy sec waf.
@@ -388,6 +286,19 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
                 break;
             }
         }
+
+        for (i = 1; op_metadata[i].parse; i++) {
+            if (!ngx_strncasecmp((u_char*)value[n].data,
+                (u_char*)op_metadata[i].name, ngx_strlen(op_metadata[i].name))) {
+                if (op_metadata[i].parse(cf, &value[n], &rule) != NGX_CONF_OK) {
+                    ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%s'", value[n].data);
+                    return NGX_CONF_ERROR;
+                }
+
+                rule.op_metadata = &op_metadata[i];
+                break;
+            }
+        }
     }
 
     for (i = 0; i < mod_rules_num; i++) {
@@ -399,6 +310,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 
 
     if (rule.mod) {
+        rule.op_metadata = &op_metadata[0];
         return NGX_CONF_OK;
     } else {
         if (rule.regex == NULL && rule.str == NULL && rule.eq == NULL) {

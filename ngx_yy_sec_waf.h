@@ -38,11 +38,30 @@
 #define BLOCK "BLOCK"
 #define ALLOW "ALLOW"
 
-extern ngx_module_t  ngx_http_yy_sec_waf_module;
+#define RULE_MATCH              1
+#define RULE_NO_MATCH           2
 
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
+ngx_int_t ngx_http_yy_sec_waf_execute_null(ngx_http_request_t *r,
+    ngx_str_t *str, void *rule);
+
+
+typedef void* (*fn_op_parse_t)(ngx_conf_t *cf,
+    ngx_str_t *tmp, void *rule);
+typedef ngx_int_t (*fn_op_execute_t)(ngx_http_request_t *r,
+    ngx_str_t *str, void *rule);
+
 typedef struct {
+    const char *name;
+    fn_op_parse_t parse;
+    fn_op_execute_t execute;
+} re_op_metadata;
+
+extern ngx_module_t  ngx_http_yy_sec_waf_module;
+extern re_op_metadata op_metadata[];
+
+typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */
     ngx_str_t *eq; /* EQ */
@@ -51,6 +70,9 @@ typedef struct {
     ngx_str_t *msg; /* MSG */
     ngx_int_t  rule_id;
     ngx_int_t  var_index;
+
+    re_op_metadata *op_metadata;
+
     /* POS */
     ngx_flag_t body:1;
     ngx_flag_t header:1;
