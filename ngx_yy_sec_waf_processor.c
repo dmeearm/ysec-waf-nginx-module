@@ -102,9 +102,9 @@ ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
         ngx_http_yy_sec_waf_process_basic_rule(r, str, rule, ctx);
 
         if (ctx->matched) {
-            ctx->is_wlr = rule->is_wlr;
             ctx->rule_id = rule->rule_id;
             ctx->block = rule->block;
+            ctx->allow = rule->allow;
             ctx->log = rule->log;
             ctx->gids = rule->gids;
             ctx->msg = rule->msg;
@@ -133,9 +133,6 @@ ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (str == NULL)
-        return NGX_ERROR;
-
     if (rule->regex != NULL) {
         /* REGEX */
         rc = ngx_http_regex_exec(r, rule->regex, str);
@@ -153,7 +150,27 @@ ngx_http_yy_sec_waf_process_basic_rule(ngx_http_request_t *r,
         }
 
         return NGX_DECLINED;
-    }
+    } else if (rule->eq != NULL) {
+        /* EQ */
+        ngx_http_variable_value_t    *vv;
+
+        if (rule->var_index != NGX_CONF_UNSET) {
+            vv = ngx_http_get_indexed_variable(r, rule->var_index);
+		
+            if (vv == NULL || vv->not_found) {
+                return NGX_DECLINED;
+            }
+		
+            if ((vv->len == rule->eq->len)
+                && (ngx_memcmp(vv->data, rule->eq->data, vv->len) == 0))
+            {
+                ctx->matched = 1;
+                return NGX_OK;
+            }
+        }
+
+        return NGX_DECLINED;
+    }	
 
     return NGX_ERROR;
 }
@@ -191,8 +208,8 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     }
 
     if (ctx->matched) {
-        ctx->is_wlr = rule_p[i].is_wlr;
         ctx->rule_id = rule_p[i].rule_id;
+        ctx->allow = rule_p[i].allow;
         ctx->block = rule_p[i].block;
         ctx->log = rule_p[i].log;
         ctx->gids = rule_p[i].gids;
@@ -583,6 +600,25 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 }
 
 /*
+** @description: This function is called to process the varibles of the request.
+** @para: ngx_conf_t *cf
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
+** @return: void.
+*/
+
+static void
+ngx_http_yy_sec_waf_process_variables(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
+{
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_variables Entry");
+
+    ngx_http_yy_sec_waf_process_basic_rules(r, NULL, cf->variable_rules, ctx);
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_variables Exit");
+}
+
+/*
 ** @description: This function is called to process the header of the request.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_http_request_ctx_t *ctx
@@ -780,8 +816,10 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
+    if (cf->variable_rules != NULL)
+        ngx_http_yy_sec_waf_process_variables(r, cf, ctx);
 
-    if (cf->header_rules != NULL)
+    if (!ctx->matched && cf->header_rules != NULL)
         ngx_http_yy_sec_waf_process_headers(r, cf, ctx);
 
     if (!ctx->matched && cf->uri_rules != NULL)

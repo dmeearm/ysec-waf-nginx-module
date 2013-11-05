@@ -20,6 +20,8 @@ static void *ngx_http_yy_sec_waf_parse_str(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
+static void *ngx_http_yy_sec_waf_parse_eq(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_mod(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_gids(ngx_conf_t *cf,
@@ -32,20 +34,18 @@ static void *ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
-static void *ngx_http_yy_sec_waf_parse_whitelist(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 
 
 static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
     { STR, ngx_http_yy_sec_waf_parse_str},
     { REGEX, ngx_http_yy_sec_waf_parse_regex},
+    { EQ, ngx_http_yy_sec_waf_parse_eq},
     { MOD, ngx_http_yy_sec_waf_parse_mod},
     { GIDS, ngx_http_yy_sec_waf_parse_gids},
     { ID, ngx_http_yy_sec_waf_parse_rule_id},
     { MSG, ngx_http_yy_sec_waf_parse_msg},
     { POS, ngx_http_yy_sec_waf_parse_pos},
     { LEVEL, ngx_http_yy_sec_waf_parse_level},
-    { WHITELIST, ngx_http_yy_sec_waf_parse_whitelist},
     { NULL, NULL}
 };
 
@@ -109,6 +109,35 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
     rule->regex = ngx_http_regex_compile(cf, rgc);
     if (rule->regex == NULL)
         return NGX_CONF_ERROR;
+
+    return NGX_CONF_OK;
+}
+
+/*
+** @description: This function is called to parse eq of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+ngx_http_yy_sec_waf_parse_eq(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
+{
+    ngx_str_t *eq;
+
+    if (!rule)
+        return NGX_CONF_ERROR;
+
+    eq = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+    if (!eq)
+        return NGX_CONF_ERROR;
+
+    eq->data = tmp->data + ngx_strlen(EQ);
+    eq->len = tmp->len - ngx_strlen(EQ);
+
+    rule->eq = eq;
 
     return NGX_CONF_OK;
 }
@@ -243,8 +272,9 @@ static void *
 ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
-    char *tmp_ptr;
-    
+    char      *tmp_ptr;
+    ngx_str_t  value;
+
     tmp_ptr = (char*)tmp->data + ngx_strlen(POS);
 
     while (*tmp_ptr) {
@@ -271,6 +301,12 @@ ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
             rule->cookie = 1;
             tmp_ptr += ngx_strlen(COOKIE);
             continue;
+        } else if (tmp_ptr[0] == '$') {
+            rule->variable = 1;
+            value.len = tmp->len - ngx_strlen(POS) - 1;
+            value.data = (u_char*)tmp_ptr+1;
+            rule->var_index = ngx_http_get_variable_index(cf, &value);
+            break;
         } else {
             return (NGX_CONF_ERROR);
         }
@@ -307,27 +343,15 @@ ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
             rule->log = 1;
             tmp_ptr += ngx_strlen(LOG);
             continue;
+        } else if (!ngx_strncmp(tmp_ptr, ALLOW, ngx_strlen(ALLOW))) {
+            rule->allow = 1;
+            tmp_ptr += ngx_strlen(ALLOW);
+            continue;
         } else {
             return (NGX_CONF_ERROR);
         }
     }
 
-    return NGX_CONF_OK;
-}
-
-/*
-** @description: This function is called to parse whitelist flag of yy sec waf.
-** @para: ngx_conf_t *cf
-** @para: ngx_str_t *tmp
-** @para: ngx_http_yy_sec_waf_rule_t *rule
-** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
-*/
-
-static void *
-ngx_http_yy_sec_waf_parse_whitelist(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
-{
-    rule->is_wlr = 1;
     return NGX_CONF_OK;
 }
 
@@ -377,12 +401,12 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
     if (rule.mod) {
         return NGX_CONF_OK;
     } else {
-        if (rule.regex == NULL && rule.str == NULL) {
-            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] No regex or str for rule(id=%d)", rule.rule_id);
+        if (rule.regex == NULL && rule.str == NULL && rule.eq == NULL) {
+            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] No operation for rule(id=%d)", rule.rule_id);
             return NGX_CONF_ERROR;
         }
     }
-  
+
     if (rule.header) {
         if (p->header_rules == NULL) {
             p->header_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
@@ -424,6 +448,22 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         }
         
         rule_p = ngx_array_push(p->uri_rules);
+        
+        if (rule_p == NULL)
+            return NGX_CONF_ERROR;
+        
+        ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
+    }
+
+    if (rule.variable) {
+        if (p->variable_rules == NULL) {
+            p->variable_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
+            
+            if (p->variable_rules == NULL)
+                return NGX_CONF_ERROR;
+        }
+        
+        rule_p = ngx_array_push(p->variable_rules);
         
         if (rule_p == NULL)
             return NGX_CONF_ERROR;

@@ -18,13 +18,13 @@
 
 #define STR "str:"
 #define REGEX "regex:"
+#define EQ "eq:"
 #define MOD "mod:"
 #define GIDS "gids:"
 #define ID "id:"
 #define MSG "msg:"
 #define POS "pos:"
 #define LEVEL "lev:"
-#define WHITELIST "whitelist"
 
 /* POS */
 #define HEADER "HEADER"
@@ -36,6 +36,7 @@
 /* LEV */
 #define LOG "LOG"
 #define BLOCK "BLOCK"
+#define ALLOW "ALLOW"
 
 extern ngx_module_t  ngx_http_yy_sec_waf_module;
 
@@ -44,26 +45,30 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 typedef struct {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */
+    ngx_str_t *eq; /* EQ */
     ngx_flag_t mod:1; /* MOD */
-    ngx_flag_t is_wlr:1;
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */
     ngx_int_t  rule_id;
+    ngx_int_t  var_index;
     /* POS */
     ngx_flag_t body:1;
     ngx_flag_t header:1;
     ngx_flag_t uri:1;
     ngx_flag_t args:1;
     ngx_flag_t cookie:1;
+    ngx_flag_t variable:1;
     /* LEVEL*/
     ngx_flag_t    log:1;
     ngx_flag_t    block:1;
+    ngx_flag_t    allow:1;
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
     ngx_array_t *header_rules;/* ngx_http_yy_sec_waf_rule_t */
     ngx_array_t *args_rules;
-    ngx_array_t *uri_rules; 
+    ngx_array_t *uri_rules;
+    ngx_array_t *variable_rules;
 
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
@@ -80,13 +85,13 @@ typedef struct {
     /* blocking flags*/
     ngx_flag_t    log:1;
     ngx_flag_t    block:1;
+    ngx_flag_t    allow:1;
     /* state */
     ngx_flag_t    process_done:1;
     ngx_flag_t    read_body_done:1;
     ngx_flag_t    waiting_more_body:1;
 
     ngx_flag_t    matched:1;
-    ngx_flag_t    is_wlr:1;
     ngx_int_t     rule_id;
     ngx_str_t    *gids;
     ngx_str_t    *msg;

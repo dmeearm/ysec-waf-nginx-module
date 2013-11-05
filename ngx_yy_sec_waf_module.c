@@ -157,6 +157,8 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->uri_rules = prev->uri_rules;
     if (conf->args_rules == NULL)
         conf->args_rules = prev->args_rules;
+    if (conf->variable_rules == NULL)
+        conf->variable_rules = prev->variable_rules;
     if (conf->denied_url == NULL)
         conf->denied_url = prev->denied_url;
 
@@ -279,26 +281,24 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         ctx->process_done = 1;
 
         if (ctx->matched) {
-            if (!ctx->is_wlr) {
-                cf->request_matched++;
-                
-                if (ctx->block)
-                    cf->request_blocked++;
-                
-                if (ctx->matched_string) {
-                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                        "[ysec_waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d, matched string=%V",
-                        ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked, ctx->matched_string);
-                }
-
-                if (ctx->log && !ctx->block)
-                    return NGX_DECLINED;
-    
-                return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
+            cf->request_matched++;
+            
+            if (!ctx->allow && ctx->block)
+                cf->request_blocked++;
+            
+            if (ctx->log && ctx->matched_string) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                    "[ysec_waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d, matched string=%V",
+                    ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked, ctx->matched_string);
             }
 
-            return NGX_DECLINED;
+            if (ctx->allow)
+                return NGX_DECLINED;
+
+            return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
         }
+
+        return NGX_DECLINED;
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_handler Exit");
