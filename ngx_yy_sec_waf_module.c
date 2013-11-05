@@ -22,7 +22,8 @@ extern char * ngx_http_yy_sec_waf_read_du_loc_conf(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 extern char * ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
-extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r);
+extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
 
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
@@ -269,7 +270,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 	}
 
     if (ctx && ctx->read_body_done && !ctx->process_done) {
-        rc = ngx_http_yy_sec_waf_process_request(r);
+        rc = ngx_http_yy_sec_waf_process_request(r, cf, ctx);
 
         cf->request_processed++;
 

@@ -148,9 +148,6 @@ ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     for (i = 0; i < rules->nelts; i++) {
         rc = rule_p[i].op_metadata->execute(r, str, &rule_p[i]);
 
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] data=%d", rc);
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] str=%s", rule_p[i].op_metadata->name);
-
         if (rc == NGX_ERROR) {
             return rc;
         } else if (rc == RULE_MATCH) {
@@ -752,23 +749,16 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
 /*
 ** @description: This function is called to process the request.
 ** @para: ngx_http_request_t *r
+** @para: ngx_conf_t *cf
+** @para: ngx_http_request_ctx_t *ctx
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 ngx_int_t
-ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r)
+ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Entry");
-
-    ngx_http_yy_sec_waf_loc_conf_t *cf;
-    ngx_http_request_ctx_t         *ctx;
-
-	cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
-    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
-
-    if (cf == NULL || cf == NULL) {
-        return NGX_ERROR;
-    }
 
     if (cf->variable_rules != NULL)
         ngx_http_yy_sec_waf_process_variables(r, cf, ctx);
