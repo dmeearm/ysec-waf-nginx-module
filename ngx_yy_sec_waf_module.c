@@ -17,6 +17,8 @@ static void ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r);
 static void * ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf,
     void *parent, void *child);
+static ngx_http_request_ctx_t* ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf);
 
 extern char * ngx_http_yy_sec_waf_read_du_loc_conf(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
@@ -246,7 +248,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             return NGX_HTTP_NOT_ALLOWED;
     }
 
-    ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_request_ctx_t));
+    ctx = ngx_http_yy_sec_waf_create_ctx(r, cf);
 
     if (ctx == NULL) {
         return NGX_ERROR;
@@ -406,4 +408,32 @@ ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
     }
 }
 
+static ngx_http_request_ctx_t*
+ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf)
+{
+    ngx_http_request_ctx_t *ctx;
+
+    ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_request_ctx_t));
+    
+    if (ctx == NULL) {
+        return NULL;
+    }
+
+    ctx->method = r->method;
+    ctx->http_version = r->http_version;
+    ctx->request_line = r->request_line;
+    ctx->uri = r->uri;
+    ctx->args = r->args;
+    ctx->exten = r->exten;
+    ctx->unparsed_uri = r->unparsed_uri;
+    ctx->method_name = r->method_name;
+    ctx->http_protocol = r->http_protocol;
+    ctx->headers_in = &r->headers_in;
+    
+    ctx->r = r;
+    ctx->cf = cf;
+
+    return ctx;
+}
 

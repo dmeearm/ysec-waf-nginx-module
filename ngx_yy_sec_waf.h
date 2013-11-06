@@ -41,6 +41,13 @@
 #define RULE_MATCH              1
 #define RULE_NO_MATCH           2
 
+#define UNCOMMON_CONTENT_TYPE 10
+#define UNCOMMON_FILENAME 11
+#define UNCOMMON_FILENAME_POSTFIX 12
+#define UNCOMMON_HEX_ENCODING 13
+#define UNCOMMON_POST_BOUNDARY 14
+#define UNCOMMON_POST_FORMAT 15
+
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 ngx_int_t ngx_http_yy_sec_waf_execute_null(ngx_http_request_t *r,
@@ -104,6 +111,29 @@ typedef struct {
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {
+    ngx_http_request_t *r;
+    ngx_http_yy_sec_waf_loc_conf_t *cf;
+
+    ngx_uint_t method;
+    ngx_uint_t http_version;
+    ngx_str_t request_line;
+    ngx_str_t uri;
+    ngx_str_t args;
+    ngx_str_t exten;
+    ngx_str_t unparsed_uri;
+    ngx_str_t method_name;
+    ngx_str_t http_protocol;
+    ngx_http_headers_in_t *headers_in;
+
+    u_char *boundary;
+    ngx_uint_t boundary_len;
+    ngx_str_t  multipart_filename;
+    ngx_str_t  multipart_name;
+    ngx_str_t  content_type;
+
+    ngx_int_t process_body_error;
+    ngx_uint_t post_args_len;
+
     /* blocking flags*/
     ngx_flag_t    log:1;
     ngx_flag_t    block:1;
