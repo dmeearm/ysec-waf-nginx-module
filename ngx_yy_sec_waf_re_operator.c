@@ -184,23 +184,13 @@ ngx_http_yy_sec_waf_execute_eq(ngx_http_request_t *r,
         return RULE_MATCH;
     }
 
-    ngx_http_variable_value_t	 *vv;
-    
-    if (rule->var_index != NGX_CONF_UNSET) {
-        vv = ngx_http_get_indexed_variable(r, rule->var_index);
-    
-        if (vv == NULL || vv->not_found) {
-            return RULE_NO_MATCH;
-        }
-    
-        if ((vv->len == rule->eq->len)
-            && (ngx_memcmp(vv->data, rule->eq->data, vv->len) == 0))
-        {
-            return RULE_MATCH;
-        }
+    if ((str->len == rule->eq->len)
+        && (ngx_memcmp(str->data, rule->eq->data, str->len) == 0))
+    {
+        return RULE_MATCH;
     }
 
-    return NGX_ERROR;
+    return RULE_NO_MATCH;
 }
 
 /*

@@ -113,7 +113,7 @@ ngx_http_yy_sec_waf_apply_mod_rule(ngx_http_request_t *r,
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static ngx_int_t
+ngx_int_t
 ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
 {
@@ -208,6 +208,9 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
         } else {
             break;
         }
+
+        ctx->post_args_value->data = ngx_pstrdup(r->pool, &value);
+        ctx->post_args_value->len = value.len;
 
 		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, len=%d", &value, value.len);
 
@@ -548,125 +551,6 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to process the varibles of the request.
-** @para: ngx_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @para: ngx_http_request_t *r
-** @return: void.
-*/
-
-static void
-ngx_http_yy_sec_waf_process_variables(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_variables Entry");
-
-    ngx_http_yy_sec_waf_process_basic_rules(r, NULL, cf->variable_rules, ctx);
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_variables Exit");
-}
-
-/*
-** @description: This function is called to process the header of the request.
-** @para: ngx_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @para: ngx_http_request_t *r
-** @return: void.
-*/
-
-static void
-ngx_http_yy_sec_waf_process_headers(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_headers Entry");
-
-    ngx_list_part_t *part;
-    ngx_table_elt_t *h;
-    ngx_uint_t       i;
-
-    ctx->headers_in = &r->headers_in;
-
-    part = &r->headers_in.headers.part;
-    h = part->elts;
-
-    for (i = 0; !ctx->matched; i++) {
-        if (i >= part->nelts) {
-            if (part->next == NULL) 
-                break;
-
-            part = part->next;
-            h = part->elts;
-            i = 0;
-        }
-
-        ngx_http_yy_sec_waf_process_basic_rules(r, &h[i].value, cf->header_rules, ctx);
-	}
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_headers Exit");
-}
-
-/*
-** @description: This function is called to process the uri of the request.
-** @para: ngx_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @para: ngx_http_request_t *r
-** @return: void.
-*/
-
-static void
-ngx_http_yy_sec_waf_process_uri(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_uri Entry");
-
-    ngx_str_t  tmp;
-
-    tmp.len = r->uri.len;
-    tmp.data = ngx_pcalloc(r->pool, tmp.len+1);
-
-    if (tmp.data == NULL) {
-        return;
-    }
-
-    (void)ngx_memcpy(tmp.data, r->uri.data, tmp.len);
-
-    ngx_http_yy_sec_waf_process_basic_rules(r, &tmp, cf->uri_rules, ctx);
-
-    ngx_pfree(r->pool, tmp.data);
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_uri Exit");
-}
-
-/*
-** @description: This function is called to process the args of the request.
-** @para: ngx_http_request_t *r
-** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @return: void.
-*/
-
-static void
-ngx_http_yy_sec_waf_process_args(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_args Entry");
-
-    ngx_str_t  tmp;
-
-    tmp.len = r->args.len;
-    tmp.data = ngx_pcalloc(r->pool, tmp.len+1);
-
-    if (tmp.data == NULL)
-        return;
-
-    (void)ngx_memcpy(tmp.data, r->args.data, tmp.len);
-    
-    ngx_http_yy_sec_waf_process_spliturl_rules(r, &tmp, cf->args_rules, ctx);
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_args Exit");
-}
-
-/*
 ** @description: This function is called to process the body of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
@@ -736,7 +620,7 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
             return NGX_ERROR;
         }
 
-        ngx_http_yy_sec_waf_process_spliturl_rules(r, &full_body, cf->args_rules, ctx);
+        ngx_http_yy_sec_waf_process_spliturl_rules(r, &full_body, cf->request_header_rules, ctx);
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_body Exit");
@@ -758,23 +642,13 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
 {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Entry");
 
-    if (cf->variable_rules != NULL)
-        ngx_http_yy_sec_waf_process_variables(r, cf, ctx);
-
-    if (!ctx->matched && cf->header_rules != NULL)
-        ngx_http_yy_sec_waf_process_headers(r, cf, ctx);
-
-    if (!ctx->matched && cf->uri_rules != NULL)
-        ngx_http_yy_sec_waf_process_uri(r, cf, ctx);
-
-    if (!ctx->matched && cf->args_rules != NULL)
-        ngx_http_yy_sec_waf_process_args(r, cf, ctx);
-
     /* TODO: process body, need test case for this situation. */
     if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
         && r->request_body && !ctx->matched) {
         ngx_http_yy_sec_waf_process_body(r, cf, ctx);
     }
+
+    yy_sec_waf_re_process_normal_rules(r, cf, ctx);
 
 	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Exit");
 

@@ -25,6 +25,7 @@
 #define MSG "msg:"
 #define POS "pos:"
 #define LEVEL "lev:"
+#define PHASE "phase:"
 
 /* POS */
 #define HEADER "HEADER"
@@ -40,6 +41,9 @@
 
 #define RULE_MATCH              1
 #define RULE_NO_MATCH           2
+
+#define REQUEST_HEADER_PHASE 0x01
+#define REQUEST_BODY_PHASE 0x10
 
 #define UNCOMMON_CONTENT_TYPE 10
 #define UNCOMMON_FILENAME 11
@@ -65,7 +69,16 @@ typedef struct {
     fn_op_execute_t execute;
 } re_op_metadata;
 
+typedef int (*fn_var_generate_t)(void *rule,
+    void *ctx, ngx_str_t *var);
+
+typedef struct {
+    const char *name;
+    fn_var_generate_t generate;
+} re_var_metadata;
+
 extern ngx_module_t  ngx_http_yy_sec_waf_module;
+extern re_var_metadata var_metadata[];
 extern re_op_metadata op_metadata[];
 
 typedef struct ngx_http_yy_sec_waf_rule {
@@ -76,8 +89,10 @@ typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */
     ngx_int_t  rule_id;
+    ngx_int_t  phase;
     ngx_int_t  var_index;
 
+    re_var_metadata *var_metadata;
     re_op_metadata *op_metadata;
 
     /* POS */
@@ -94,10 +109,9 @@ typedef struct ngx_http_yy_sec_waf_rule {
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
-    ngx_array_t *header_rules;/* ngx_http_yy_sec_waf_rule_t */
-    ngx_array_t *args_rules;
-    ngx_array_t *uri_rules;
-    ngx_array_t *variable_rules;
+    /* ngx_http_yy_sec_waf_rule_t */
+    ngx_array_t *request_header_rules;
+    ngx_array_t *request_body_rules;
 
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
@@ -113,6 +127,7 @@ typedef struct {
 typedef struct {
     ngx_http_request_t *r;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
+    ngx_int_t  phase;
 
     ngx_uint_t method;
     ngx_uint_t http_version;
@@ -125,14 +140,19 @@ typedef struct {
     ngx_str_t http_protocol;
     ngx_http_headers_in_t *headers_in;
 
+    ngx_str_t *post_args_value;
+
     u_char *boundary;
     ngx_uint_t boundary_len;
     ngx_str_t  multipart_filename;
     ngx_str_t  multipart_name;
     ngx_str_t  content_type;
 
-    ngx_int_t process_body_error;
+    ngx_int_t  process_body_error;
+    ngx_str_t *process_body_error_msg;
     ngx_uint_t post_args_len;
+
+    ngx_int_t  var_index;
 
     /* blocking flags*/
     ngx_flag_t    log:1;
@@ -150,6 +170,12 @@ typedef struct {
     ngx_str_t    *matched_string;
 } ngx_http_request_ctx_t;
 
+
+ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
+
+ngx_int_t ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
+    ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx);
 
 #endif
 

@@ -154,14 +154,10 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_yy_sec_waf_loc_conf_t *prev = parent;
     ngx_http_yy_sec_waf_loc_conf_t *conf = child;
 
-    if (conf->header_rules == NULL)
-        conf->header_rules = prev->header_rules;
-    if (conf->uri_rules == NULL)
-        conf->uri_rules = prev->uri_rules;
-    if (conf->args_rules == NULL)
-        conf->args_rules = prev->args_rules;
-    if (conf->variable_rules == NULL)
-        conf->variable_rules = prev->variable_rules;
+    if (conf->request_header_rules == NULL)
+        conf->request_header_rules = prev->request_header_rules;
+    if (conf->request_body_rules == NULL)
+        conf->request_body_rules = prev->request_body_rules;
     if (conf->denied_url == NULL)
         conf->denied_url = prev->denied_url;
 
