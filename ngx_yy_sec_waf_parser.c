@@ -452,19 +452,23 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 
     if (ctx->cf->request_header_rules != NULL) {
         header_rule = cf->request_header_rules->elts;
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 1");
 
         ctx->phase = REQUEST_HEADER_PHASE;
         for (i=0; i < cf->request_header_rules->nelts; i++) {
 
             if (header_rule[i].var_metadata == NULL || header_rule[i].var_metadata->generate == NULL)
                 continue;
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 2");
 
             header_rule[i].var_metadata->generate(&header_rule[i], ctx, &var);
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 3");
 
-            ngx_yy_sec_waf_unescape(&var);
+            //ngx_yy_sec_waf_unescape(&var);
 
             rc = header_rule[i].op_metadata->execute(r, &var, &header_rule[i]);
 			
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 4");
             if (rc == NGX_ERROR) {
                 return rc;
             } else if (rc == RULE_MATCH) {

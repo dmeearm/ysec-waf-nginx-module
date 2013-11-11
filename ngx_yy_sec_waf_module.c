@@ -416,16 +416,12 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
         return NULL;
     }
 
-    ctx->method = r->method;
-    ctx->http_version = r->http_version;
-    ctx->request_line = r->request_line;
-    ctx->uri = r->uri;
-    ctx->args = r->args;
-    ctx->exten = r->exten;
-    ctx->unparsed_uri = r->unparsed_uri;
-    ctx->method_name = r->method_name;
-    ctx->http_protocol = r->http_protocol;
-    ctx->headers_in = &r->headers_in;
+    ctx->args = ngx_palloc(r->pool, sizeof(ngx_str_t));
+    ctx->args->data = ngx_pstrdup(r->pool, &r->args);
+    ctx->args->len = r->args.len;
+    ngx_yy_sec_waf_unescape(ctx->args);
+
+    ctx->post_args_value = ngx_palloc(r->pool, sizeof(ngx_str_t));
     
     ctx->r = r;
     ctx->cf = cf;

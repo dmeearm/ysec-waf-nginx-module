@@ -28,11 +28,9 @@ ngx_http_yy_sec_waf_generate_args(void *rule_p,
     }
 
     if (ctx->phase == REQUEST_HEADER_PHASE) {
-        var->data = ngx_pstrdup(ctx->r->pool, &ctx->r->args);
-        var->len = ctx->r->args.len;
+        ngx_memcpy(var, ctx->args, sizeof(ngx_str_t));
     } else if (ctx->phase == REQUEST_BODY_PHASE) {
-        var->data = ngx_pstrdup(ctx->r->pool, ctx->post_args_value);
-        var->len = ctx->post_args_value->len;
+        ngx_memcpy(var, ctx->post_args_value, sizeof(ngx_str_t));
     }
 
     return NGX_OK;
