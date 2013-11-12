@@ -21,13 +21,7 @@ __DATA__
 eh yo
 --- config
 location / {
-basic_rule id:1201 gids:UPLOAD mod:on regex:\.\./ msg:"special file charactors" pos:BODY lev:LOG|BLOCK;
-
-basic_rule id:1202 gids:UPLOAD mod:on msg:"uncommon hex encoding, null bytes" pos:BODY lev:LOG|BLOCK;
-
-basic_rule id:1203 gids:UPLOAD mod:on regex:\.jsp|\.php|\.html|\.htm msg:"uncommon filename postfix" pos:BODY  Lev:LOG|BLOCK;
-
-basic_rule id:1204 gids:UPLOAD mod:on msg:"uncommon filename" pos:BODY lev:LOG|BLOCK;
+  include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
@@ -66,7 +60,7 @@ buibuibuib
 eh yo
 --- config
 location / {
-basic_rule id:1202 gids:UPLOAD mod:on msg:"uncommon hex encoding, null bytes" pos:BODY lev:LOG|BLOCK;
+  include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
@@ -103,7 +97,7 @@ Content-Type: application/x-httpd-php\r
 eh yo
 --- config
 location / {
-basic_rule id:1201 gids:UPLOAD mod:on regex:\.\./ msg:"special file charactors" pos:BODY lev:LOG|BLOCK;
+  include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;

@@ -15,7 +15,7 @@ __DATA__
 === TEST 1: Basic GET request
 --- config
 location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
+    include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -26,7 +26,7 @@ GET /
 === TEST 2: DENY: Short Char Rule
 --- config
 location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
+    include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -37,7 +37,7 @@ GET /?a="<script>alert(1)</script>"
 === TEST 3: Regex
 --- config
 location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS;
+    include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
@@ -48,70 +48,35 @@ GET /?a="<script>alert(1)</script>"
 === TEST 4: Multi Rules
 --- config
 location / {
-    basic_rule str:< msg:test pos:BODY|ARGS gids:XSS;
-    basic_rule regex:<script[^>]*> msg:test pos:BODY|ARGS gids:XSS;
+    include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 412
-
-=== TEST 5: POS, Not in Args pos
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:BODY gids:XSS;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 200
 
 === TEST 6: LEV, log
 --- config
 location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG;
+    include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
 --- request
 GET /?a="<script>alert(1)</script>"
---- error_code: 200
+--- error_code: 412
 
 === TEST 7: LEV, block
 --- config
 location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:BLOCK;
+    include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
 }
 --- request
 GET /?a="<script>alert(1)</script>"
 --- error_code: 412
-
-=== TEST 7: LEV, log and block
---- config
-location / {
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 412
-
-=== TEST 8: yy_sec_waf flag
---- config
-location / {
-    yy_sec_waf off;
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS gids:XSS lev:LOG|BLOCK;
-    root $TEST_NGINX_SERVROOT/html/;
-    index index.html index.htm;
-}
---- request
-GET /?a="<script>alert(1)</script>"
---- error_code: 200
 
 === TEST 9: basic post
 --- user_files
@@ -119,8 +84,7 @@ GET /?a="<script>alert(1)</script>"
 eh yo
 --- config
 location / {
-    yy_sec_waf off;
-    basic_rule regex:<script[^>]*> msg:test pos:ARGS|HEADER gids:XSS lev:LOG|BLOCK;
+    include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
