@@ -52,8 +52,8 @@ ngx_http_yy_sec_waf_execute_str(ngx_http_request_t *r,
 {
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
-    if (str == NULL && rule->mod) {
-        return RULE_MATCH;
+    if (str == NULL) {
+        return NGX_ERROR;
     }
 
     if (rule->str != NULL) {
@@ -118,8 +118,8 @@ ngx_http_yy_sec_waf_execute_regex(ngx_http_request_t *r,
 
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
-    if (str == NULL && rule->mod) {
-        return RULE_MATCH;
+    if (str == NULL) {
+        return NGX_ERROR;
     }
 
     if (rule->regex != NULL) {
@@ -180,8 +180,8 @@ ngx_http_yy_sec_waf_execute_eq(ngx_http_request_t *r,
 {
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
-    if (str == NULL && rule->mod) {
-        return RULE_MATCH;
+    if (str == NULL) {
+        return NGX_ERROR;
     }
 
     if ((str->len == rule->eq->len)
@@ -193,31 +193,51 @@ ngx_http_yy_sec_waf_execute_eq(ngx_http_request_t *r,
     return RULE_NO_MATCH;
 }
 
-/*
-** @description: This function is called to excute null operator.
-** @para: ngx_str_t *str
-** @para: void *rule
-** @return: RULE_MATCH or RULE_NO_MATCH if failed.
-*/
-
-ngx_int_t
-ngx_http_yy_sec_waf_execute_null(ngx_http_request_t *r,
-    ngx_str_t *str, void *rule_p)
-{
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
-
-    if (str == NULL && rule->mod) {
-        return RULE_MATCH;
-    }
-
-    return RULE_NO_MATCH;
-}
 
 re_op_metadata op_metadata[] = {
-    { "null", NULL, ngx_http_yy_sec_waf_execute_null }, // tmp hack for mod, remove it later.
-    { "str", ngx_http_yy_sec_waf_parse_str, ngx_http_yy_sec_waf_execute_str },
-    { "regex", ngx_http_yy_sec_waf_parse_regex, ngx_http_yy_sec_waf_execute_regex },
-    { "eq", ngx_http_yy_sec_waf_parse_eq, ngx_http_yy_sec_waf_execute_eq },
-    { NULL, NULL, NULL }
+    { ngx_string("str"), ngx_http_yy_sec_waf_parse_str, ngx_http_yy_sec_waf_execute_str },
+    { ngx_string("regex"), ngx_http_yy_sec_waf_parse_regex, ngx_http_yy_sec_waf_execute_regex },
+    { ngx_string("eq"), ngx_http_yy_sec_waf_parse_eq, ngx_http_yy_sec_waf_execute_eq },
+    { ngx_null_string, NULL, NULL }
 };
-    
+
+ngx_int_t
+yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf, ngx_http_yy_sec_waf_loc_conf_t *ysec_cf)
+{
+    ngx_array_t         operators;
+    ngx_hash_key_t     *hk;
+    ngx_hash_init_t     hash;
+    re_op_metadata     *metadata;
+
+    if (ngx_array_init(&operators, cf->temp_pool, 32, sizeof(ngx_hash_key_t))
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    for (metadata = op_metadata; metadata->name.len; metadata++) {
+        hk = ngx_array_push(&operators);
+        if (hk == NULL) {
+            return NGX_ERROR;
+        }
+
+        hk->key = metadata->name;
+        hk->key_hash = ngx_hash_key_lc(metadata->name.data, metadata->name.len);
+        hk->value = metadata;
+    }
+
+    hash.hash = &ysec_cf->operators_in_hash;
+    hash.key = ngx_hash_key_lc;
+    hash.max_size = 512;
+    hash.bucket_size = ngx_align(64, ngx_cacheline_size);
+    hash.name = "operators_in_hash";
+    hash.pool = cf->pool;
+    hash.temp_pool = NULL;
+
+    if (ngx_hash_init(&hash, operators.elts, operators.nelts) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+

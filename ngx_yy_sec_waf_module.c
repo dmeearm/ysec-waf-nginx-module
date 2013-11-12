@@ -27,6 +27,12 @@ extern char * ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
 
+extern ngx_int_t yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf,
+    ngx_http_yy_sec_waf_loc_conf_t *ysec_cf);
+
+extern ngx_int_t yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
+    ngx_http_yy_sec_waf_loc_conf_t *ysec_cf);
+
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
     { ngx_string("HEAD"), NGX_HTTP_HEAD },
@@ -179,8 +185,9 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 static ngx_int_t
 ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
 {
-    ngx_http_handler_pt        *h;
-    ngx_http_core_main_conf_t  *cmcf;
+    ngx_http_handler_pt            *h;
+    ngx_http_core_main_conf_t      *cmcf;
+    ngx_http_yy_sec_waf_loc_conf_t *ysec_cf;
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
@@ -191,6 +198,20 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
     }
 
     *h = ngx_http_yy_sec_waf_handler;
+
+    ysec_cf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_yy_sec_waf_module);
+
+    if (ysec_cf == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (yy_sec_waf_init_variables_in_hash(cf, ysec_cf) == NGX_ERROR) {
+        return NGX_ERROR;
+    }
+
+    if (yy_sec_waf_init_operators_in_hash(cf, ysec_cf) == NGX_ERROR) {
+        return NGX_ERROR;
+    }
 
     return NGX_OK;
 }
@@ -421,8 +442,12 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ctx->args->len = r->args.len;
     ngx_yy_sec_waf_unescape(ctx->args);
 
-    ctx->post_args_value = ngx_palloc(r->pool, sizeof(ngx_str_t));
-    
+    ctx->post_args = ngx_palloc(r->pool, sizeof(ngx_str_t));
+
+    ctx->multipart_filename = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+    ctx->multipart_name = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+    ctx->content_type = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+
     ctx->r = r;
     ctx->cf = cf;
 

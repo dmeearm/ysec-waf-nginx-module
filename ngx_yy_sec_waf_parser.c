@@ -16,8 +16,6 @@ typedef struct {
     void *(*parse)(ngx_conf_t *, ngx_str_t *, ngx_http_yy_sec_waf_rule_t *);
 } ngx_http_yy_sec_waf_parser_t;
 
-static void *ngx_http_yy_sec_waf_parse_mod(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_gids(ngx_conf_t *cf,
     ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 static void *ngx_http_yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
@@ -33,7 +31,6 @@ static void *ngx_http_yy_sec_waf_parse_phase(ngx_conf_t *cf,
 
 
 static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
-    { MOD, ngx_http_yy_sec_waf_parse_mod},
     { GIDS, ngx_http_yy_sec_waf_parse_gids},
     { ID, ngx_http_yy_sec_waf_parse_rule_id},
     { MSG, ngx_http_yy_sec_waf_parse_msg},
@@ -42,37 +39,6 @@ static ngx_http_yy_sec_waf_parser_t rule_parser[] = {
     { PHASE, ngx_http_yy_sec_waf_parse_phase},
     { NULL, NULL}
 };
-
-/*
-** @description: This function is called to parse mod of yy sec waf.
-** @para: ngx_conf_t *cf
-** @para: ngx_str_t *tmp
-** @para: ngx_http_yy_sec_waf_rule_t *rule
-** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
-*/
-
-static void *
-ngx_http_yy_sec_waf_parse_mod(ngx_conf_t *cf,
-    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
-{
-    ngx_str_t mod;
-
-    if (!rule)
-        return NGX_CONF_ERROR;
-
-    mod.data = tmp->data + ngx_strlen(MOD);
-    mod.len = tmp->len - ngx_strlen(MOD);
-
-    if (!ngx_strncasecmp(mod.data, (u_char*)"off", mod.len)) {
-        rule->mod = 0;
-    } else if (!ngx_strncasecmp(mod.data, (u_char*)"on", mod.len)) {
-        rule->mod = 1;
-    } else {
-        return NGX_CONF_ERROR;
-    }
-
-    return NGX_CONF_OK;
-}
 
 /*
 ** @description: This function is called to parse gids of yy sec waf.
@@ -198,9 +164,9 @@ ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
             rule->args = 1;
 
             int i;
-            for (i = 0; var_metadata[i].generate; i++) {
+            for (i = 0; var_metadata[i].name.len; i++) {
                 if (!ngx_strncasecmp((u_char*)tmp_ptr,
-                    (u_char*)var_metadata[i].name, ngx_strlen(var_metadata[i].name))) {
+                    (u_char*)var_metadata[i].name.data, var_metadata[i].name.len)) {
                     rule->var_metadata = &var_metadata[i];
                     break;
                 }
@@ -212,6 +178,19 @@ ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
             rule->cookie = 1;
             tmp_ptr += ngx_strlen(COOKIE);
             continue;
+        } else if (!ngx_strncmp(tmp_ptr, "MULTIPART_FILENAME", ngx_strlen("MULTIPART_FILENAME"))) {
+
+            int i;
+            for (i = 0; var_metadata[i].name.len; i++) {
+                if (!ngx_strncasecmp((u_char*)tmp_ptr,
+                    (u_char*)var_metadata[i].name.data, var_metadata[i].name.len)) {
+                    rule->var_metadata = &var_metadata[i];
+                    break;
+                }
+            }
+
+            tmp_ptr += ngx_strlen("MULTIPART_FILENAME");
+            continue;
         } else if (tmp_ptr[0] == '$') {
             rule->variable = 1;
             value.len = tmp->len - ngx_strlen(POS) - 1;
@@ -221,7 +200,7 @@ ngx_http_yy_sec_waf_parse_pos(ngx_conf_t *cf,
             int i;
             for (i = 0; var_metadata[i].generate; i++) {
                 if (!ngx_strncasecmp((u_char*)tmp_ptr,
-                    (u_char*)var_metadata[i].name, ngx_strlen(var_metadata[i].name))) {
+                    (u_char*)var_metadata[i].name.data, var_metadata[i].name.len )) {
                     rule->var_metadata = &var_metadata[i];
                     break;
                 }
@@ -292,7 +271,7 @@ ngx_http_yy_sec_waf_parse_phase(ngx_conf_t *cf,
     phase->data = tmp->data + ngx_strlen(PHASE);
     phase->len = tmp->len - ngx_strlen(PHASE);
 
-    rule->phase |= ngx_atoi(phase->data, phase->len);
+    rule->phase = ngx_atoi(phase->data, phase->len);
 
     return NGX_CONF_OK;
 }
@@ -331,9 +310,10 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
             }
         }
 
-        for (i = 1; op_metadata[i].parse; i++) {
+
+        for (i = 1; op_metadata[i].name.len; i++) {
             if (!ngx_strncasecmp((u_char*)value[n].data,
-                (u_char*)op_metadata[i].name, ngx_strlen(op_metadata[i].name))) {
+                (u_char*)op_metadata[i].name.data, op_metadata[i].name.len)) {
                 if (op_metadata[i].parse(cf, &value[n], &rule) != NGX_CONF_OK) {
                     ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%s'", value[n].data);
                     return NGX_CONF_ERROR;
@@ -343,27 +323,15 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
                 break;
             }
         }
+
     }
 
-    for (i = 0; i < mod_rules_num; i++) {
-        if (rule.rule_id == mod_rules[i]->rule_id) {
-            ngx_memcpy(mod_rules[i], &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
-            break;
-        }
+    if (rule.regex == NULL && rule.str == NULL && rule.eq == NULL) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] No operation for rule(id=%d)", rule.rule_id);
+        return NGX_CONF_ERROR;
     }
 
-
-    if (rule.mod) {
-        rule.op_metadata = &op_metadata[0];
-        return NGX_CONF_OK;
-    } else {
-        if (rule.regex == NULL && rule.str == NULL && rule.eq == NULL) {
-            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] No operation for rule(id=%d)", rule.rule_id);
-            return NGX_CONF_ERROR;
-        }
-    }        
-
-    if (rule.phase & REQUEST_HEADER_PHASE) {
+    if (rule.phase == 1) {
         if (p->request_header_rules == NULL) {
             p->request_header_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
             
@@ -379,7 +347,7 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
     }
 
-    if (rule.phase & REQUEST_BODY_PHASE) {
+    if (rule.phase == 2) {
         if (p->request_body_rules == NULL) {
             p->request_body_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
             
@@ -446,78 +414,93 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Entry");
 
     ngx_http_yy_sec_waf_rule_t *header_rule, *body_rule;
-    ngx_uint_t i;
+    ngx_uint_t i, j;
 	ngx_int_t rc;
-    ngx_str_t var;
+    ngx_str_t *var;
+	ngx_array_t *var_array;
 
     if (ctx->cf->request_header_rules != NULL) {
         header_rule = cf->request_header_rules->elts;
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 1");
 
         ctx->phase = REQUEST_HEADER_PHASE;
         for (i=0; i < cf->request_header_rules->nelts; i++) {
 
             if (header_rule[i].var_metadata == NULL || header_rule[i].var_metadata->generate == NULL)
                 continue;
-			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 2");
+			var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
 
-            header_rule[i].var_metadata->generate(&header_rule[i], ctx, &var);
-			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 3");
+            header_rule[i].var_metadata->generate(&header_rule[i], ctx, var_array);
 
             //ngx_yy_sec_waf_unescape(&var);
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] %d", header_rule[i].rule_id);
 
-            rc = header_rule[i].op_metadata->execute(r, &var, &header_rule[i]);
-			
-			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] 4");
-            if (rc == NGX_ERROR) {
-                return rc;
-            } else if (rc == RULE_MATCH) {
-                ctx->matched = 1;
-            } else if (rc == RULE_NO_MATCH) {
-                continue;
-            }
-            
-            if (ctx->matched) {
-                ctx->rule_id = header_rule[i].rule_id;
-                ctx->allow = header_rule[i].allow;
-                ctx->block = header_rule[i].block;
-                ctx->log = header_rule[i].log;
-                ctx->gids = header_rule[i].gids;
-                ctx->msg = header_rule[i].msg;
-                ctx->matched_string = &var;
-                return NGX_OK;
+            var = var_array->elts;
+            for (j = 0; j < var_array->nelts; j++) {
+
+				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] %d %V", header_rule[i].rule_id, &var[j]);
+                rc = header_rule[i].op_metadata->execute(r, &var[j], &header_rule[i]);
+    			
+                if (rc == NGX_ERROR) {
+                    return rc;
+                } else if (rc == RULE_MATCH) {
+                    ctx->matched = 1;
+                } else if (rc == RULE_NO_MATCH) {
+                    continue;
+                }
+                
+                if (ctx->matched) {
+                    ctx->rule_id = header_rule[i].rule_id;
+                    ctx->allow = header_rule[i].allow;
+                    ctx->block = header_rule[i].block;
+                    ctx->log = header_rule[i].log;
+                    ctx->gids = header_rule[i].gids;
+                    ctx->msg = header_rule[i].msg;
+                    ctx->matched_string = &var[j];
+                    return NGX_OK;
+                }
             }
         }
     }
 
     if (cf->request_body_rules && r->request_body 
         && (r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)) {
-        body_rule = cf->request_header_rules->elts;
+        body_rule = cf->request_body_rules->elts;
+
 
         ctx->phase = REQUEST_BODY_PHASE;
-        for (i=0; i < cf->request_header_rules->nelts; i++) {
-            body_rule[i].var_metadata->generate(&body_rule[i], ctx, &var);
+        for (i=0; i < cf->request_body_rules->nelts; i++) {
+			var_array = ngx_array_create(r->pool, 2, sizeof(ngx_str_t));
 
-            rc = body_rule[i].op_metadata->execute(r, &var, &body_rule[i]);
-            
-            if (rc == NGX_ERROR) {
-                return rc;
-            } else if (rc == RULE_MATCH) {
-                ctx->matched = 1;
-            } else if (rc == RULE_NO_MATCH) {
-                continue;
+            body_rule[i].var_metadata->generate(&body_rule[i], ctx, var_array);
+
+            var = var_array->elts;
+            for (j = 0; j < var_array->nelts; j++) {
+
+				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] %d %V", body_rule[i].rule_id, &var[j]);
+
+                rc = body_rule[i].op_metadata->execute(r, &var[j], &body_rule[i]);
+                
+                if (rc == NGX_ERROR) {
+                    return rc;
+                } else if (rc == RULE_MATCH) {
+                    ctx->matched = 1;
+                } else if (rc == RULE_NO_MATCH) {
+                    continue;
+                }
+                
+                if (ctx->matched) {
+                    ctx->rule_id = body_rule[i].rule_id;
+                    ctx->allow = body_rule[i].allow;
+                    ctx->block = body_rule[i].block;
+                    ctx->log = body_rule[i].log;
+                    ctx->gids = body_rule[i].gids;
+                    ctx->msg = body_rule[i].msg;
+                    ctx->matched_string = &var[j];
+                    return NGX_OK;
+                }
             }
-            
-            if (ctx->matched) {
-                ctx->rule_id = body_rule[i].rule_id;
-                ctx->allow = body_rule[i].allow;
-                ctx->block = body_rule[i].block;
-                ctx->log = body_rule[i].log;
-                ctx->gids = body_rule[i].gids;
-                ctx->msg = body_rule[i].msg;
-                ctx->matched_string = &var;
-                return NGX_OK;
-            }
+
+            ngx_array_destroy(var_array);
         }
     }
 

@@ -19,7 +19,6 @@
 #define STR "str:"
 #define REGEX "regex:"
 #define EQ "eq:"
-#define MOD "mod:"
 #define GIDS "gids:"
 #define ID "id:"
 #define MSG "msg:"
@@ -66,16 +65,16 @@ typedef ngx_int_t (*fn_op_execute_t)(ngx_http_request_t *r,
     ngx_str_t *str, void *rule);
 
 typedef struct {
-    const char *name;
+    const ngx_str_t name;
     fn_op_parse_t parse;
     fn_op_execute_t execute;
 } re_op_metadata;
 
 typedef int (*fn_var_generate_t)(void *rule,
-    void *ctx, ngx_str_t *var);
+    void *ctx, ngx_array_t *var);
 
 typedef struct {
-    const char *name;
+    const ngx_str_t name;
     fn_var_generate_t generate;
 } re_var_metadata;
 
@@ -98,12 +97,13 @@ typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */
     ngx_str_t *eq; /* EQ */
-    ngx_flag_t mod:1; /* MOD */
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */
     ngx_int_t  rule_id;
     ngx_int_t  phase;
     ngx_int_t  var_index;
+
+    ngx_str_t op_name;
 
     re_var_metadata *var_metadata;
     re_op_metadata *op_metadata;
@@ -127,6 +127,9 @@ typedef struct {
     ngx_array_t *request_header_rules;
     ngx_array_t *request_body_rules;
 
+    ngx_hash_t variables_in_hash;
+    ngx_hash_t operators_in_hash;
+
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
     ngx_uint_t max_post_args_len;
@@ -145,13 +148,13 @@ typedef struct {
 
     ngx_str_t *args;
 
-    ngx_str_t *post_args_value;
+    ngx_str_t *post_args;
 
     u_char *boundary;
     ngx_uint_t boundary_len;
-    ngx_str_t  multipart_filename;
-    ngx_str_t  multipart_name;
-    ngx_str_t  content_type;
+    ngx_array_t *multipart_filename;
+    ngx_array_t *multipart_name;
+    ngx_array_t *content_type;
 
     ngx_int_t  process_body_error;
     ngx_str_t *process_body_error_msg;
