@@ -302,14 +302,22 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
         if (ctx->matched) {
             cf->request_matched++;
-            
-            if (!ctx->allow && ctx->block)
+
+			if (ctx->allow)
+                cf->request_allowed++;
+
+            if (ctx->block)
                 cf->request_blocked++;
             
             if (ctx->log && ctx->matched_string) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                    "[ysec_waf] rule matched, id=%d , total processed=%d, total matched=%d, total blocked=%d, matched string=%V",
-                    ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked, ctx->matched_string);
+                    "[ysec_waf] rule matched, id=%d,"
+                    " total processed=%d, total matched=%d, total blocked=%d, total allowed=%d,"
+                    " matched string=%V,"
+                    " %s",
+                    ctx->rule_id,
+                    cf->request_processed, cf->request_matched, cf->request_blocked, cf->request_allowed,
+                    ctx->matched_string, ctx->allow? "allowed": "blocked");
             }
 
             if (ctx->allow)

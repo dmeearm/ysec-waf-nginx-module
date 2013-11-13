@@ -88,10 +88,19 @@ typedef struct {
     fn_tfs_execute_t execute;
 } re_tfs_metadata;
 
+typedef void* (*fn_action_parse_t)(ngx_conf_t *cf,
+    ngx_str_t *tmp, void *rule);
+
+typedef struct {
+    const ngx_str_t name;
+    fn_action_parse_t parse;
+} re_action_metadata;
+
 extern ngx_module_t  ngx_http_yy_sec_waf_module;
 extern re_var_metadata var_metadata[];
 extern re_op_metadata op_metadata[];
 extern re_tfs_metadata tfs_metadata[];
+extern re_action_metadata action_metadata[];
 
 typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
@@ -139,6 +148,7 @@ typedef struct {
     ngx_uint_t    request_processed;
     ngx_uint_t    request_matched;
     ngx_uint_t    request_blocked;
+    ngx_uint_t    request_allowed;
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {
