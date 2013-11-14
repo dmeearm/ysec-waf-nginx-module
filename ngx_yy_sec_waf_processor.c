@@ -287,10 +287,14 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     boundary = NULL;
     boundary_len = 0;
 
-	if (ngx_http_yy_sec_waf_process_boundary(r, &boundary, &boundary_len) != NGX_OK) {
+    if (r == NULL || full_body == NULL || ctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (ngx_http_yy_sec_waf_process_boundary(r, &boundary, &boundary_len) != NGX_OK) {
         ctx->process_body_error = UNCOMMON_CONTENT_TYPE;
         return NGX_ERROR;
-	}
+    }
 
     ctx->boundary = boundary;
     ctx->boundary_len = boundary_len;

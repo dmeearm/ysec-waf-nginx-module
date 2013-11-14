@@ -191,6 +191,8 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
                     return NGX_OK;
                 }
             }
+
+            ngx_array_destroy(var_array);
         }
     }
 
