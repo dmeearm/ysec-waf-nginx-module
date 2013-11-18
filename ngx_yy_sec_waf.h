@@ -104,12 +104,5 @@ typedef struct {
     ngx_str_t    *matched_string;
 } ngx_http_request_ctx_t;
 
-
-ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
-
-ngx_int_t ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
-    ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx);
-
 #endif
 

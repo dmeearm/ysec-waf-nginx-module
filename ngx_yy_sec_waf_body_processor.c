@@ -17,7 +17,7 @@
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-ngx_int_t
+static ngx_int_t
 ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
     ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
 {
@@ -476,7 +476,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static ngx_int_t
+ngx_int_t
 ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
@@ -542,33 +542,6 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_body Exit");
-
-    return NGX_OK;
-}
-
-/*
-** @description: This function is called to process the request.
-** @para: ngx_http_request_t *r
-** @para: ngx_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @return: NGX_OK or NGX_ERROR if failed.
-*/
-
-ngx_int_t
-ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Entry");
-
-    /* TODO: process body, need test case for this situation. */
-    if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
-        && r->request_body && !ctx->matched) {
-        ngx_http_yy_sec_waf_process_body(r, cf, ctx);
-    }
-
-    yy_sec_waf_re_process_normal_rules(r, cf, ctx);
-
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Exit");
 
     return NGX_OK;
 }
