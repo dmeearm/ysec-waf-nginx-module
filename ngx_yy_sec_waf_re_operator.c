@@ -201,6 +201,13 @@ static re_op_metadata op_metadata[] = {
     { ngx_null_string, NULL, NULL }
 };
 
+/*
+** @description: This function is called to init operators.
+** @para: ngx_conf_t *cf
+** @para: ngx_hash_t *operators_in_hash
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
 ngx_int_t
 yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
     ngx_hash_t *operators_in_hash)

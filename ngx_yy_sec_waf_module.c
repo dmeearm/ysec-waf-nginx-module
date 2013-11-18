@@ -22,14 +22,14 @@ static char * ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf,
 static ngx_http_request_ctx_t* ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf);
 
-extern char * ngx_http_yy_sec_waf_read_du_loc_conf(ngx_conf_t *cf,
+extern char * ngx_http_yy_sec_waf_re_read_du_loc_conf(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
-extern char * ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
+extern char * ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
 
-extern ngx_int_t ngx_http_yy_sec_waf_create_rule_engine(ngx_conf_t *cf);
+extern ngx_int_t ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf);
 
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
@@ -74,14 +74,14 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
 
     { ngx_string("basic_rule"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
-      ngx_http_yy_sec_waf_read_conf,
+      ngx_http_yy_sec_waf_re_read_conf,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
 
     { ngx_string("denied_url"),
       NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE1,
-      ngx_http_yy_sec_waf_read_du_loc_conf,
+      ngx_http_yy_sec_waf_re_read_du_loc_conf,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -174,10 +174,16 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     return NGX_CONF_OK;
 }
 
+/*
+** @description: This function is called before configuration of yy sec waf.
+** @para: ngx_conf_t *cf
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
 static ngx_int_t
 ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf)
 {
-    return ngx_http_yy_sec_waf_create_rule_engine(cf);
+    return ngx_http_yy_sec_waf_re_create(cf);
 }
 
 /*
