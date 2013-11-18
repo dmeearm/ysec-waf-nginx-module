@@ -113,25 +113,25 @@ static void *
 ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
-    char *tmp_ptr;
+    u_char *tmp_ptr;
 
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
-    tmp_ptr = (char*)tmp->data + ngx_strlen(LEVEL);
+    tmp_ptr = (u_char*)tmp->data + ngx_strlen(LEVEL);
 
     while (*tmp_ptr) {
         if (tmp_ptr[0] == '|')
             tmp_ptr++;
         /* match global zones */
-        if (!ngx_strncmp(tmp_ptr, BLOCK, ngx_strlen(BLOCK))) {
+        if (!ngx_strncasecmp(tmp_ptr, (u_char*)BLOCK, ngx_strlen(BLOCK))) {
             rule->block = 1;
             tmp_ptr += ngx_strlen(BLOCK);
             continue;
-        } else if (!ngx_strncmp(tmp_ptr, LOG, ngx_strlen(LOG))) {
+        } else if (!ngx_strncasecmp(tmp_ptr, (u_char*)LOG, ngx_strlen(LOG))) {
             rule->log = 1;
             tmp_ptr += ngx_strlen(LOG);
             continue;
-        } else if (!ngx_strncmp(tmp_ptr, ALLOW, ngx_strlen(ALLOW))) {
+        } else if (!ngx_strncasecmp(tmp_ptr, (u_char*)ALLOW, ngx_strlen(ALLOW))) {
             rule->allow = 1;
             tmp_ptr += ngx_strlen(ALLOW);
             continue;
@@ -175,12 +175,53 @@ ngx_http_yy_sec_waf_parse_phase(ngx_conf_t *cf,
 }
 
 
-re_action_metadata action_metadata[] = {
-    { ngx_string(GIDS), ngx_http_yy_sec_waf_parse_gids},
-    { ngx_string(ID), ngx_http_yy_sec_waf_parse_rule_id},
-    { ngx_string(MSG), ngx_http_yy_sec_waf_parse_msg},
-    { ngx_string(LEVEL), ngx_http_yy_sec_waf_parse_level},
-    { ngx_string(PHASE), ngx_http_yy_sec_waf_parse_phase},
+static re_action_metadata action_metadata[] = {
+    { ngx_string("gids"), ngx_http_yy_sec_waf_parse_gids},
+    { ngx_string("id"), ngx_http_yy_sec_waf_parse_rule_id},
+    { ngx_string("msg"), ngx_http_yy_sec_waf_parse_msg},
+    { ngx_string("lev"), ngx_http_yy_sec_waf_parse_level},
+    { ngx_string("phase"), ngx_http_yy_sec_waf_parse_phase},
     { ngx_null_string, NULL}
 };
+
+ngx_int_t
+yy_sec_waf_init_actions_in_hash(ngx_conf_t *cf,
+    ngx_hash_t *actions_in_hash)
+{
+    ngx_array_t         actions;
+    ngx_hash_key_t     *hk;
+    ngx_hash_init_t     hash;
+    re_action_metadata     *metadata;
+
+    if (ngx_array_init(&actions, cf->temp_pool, 32, sizeof(ngx_hash_key_t))
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    for (metadata = action_metadata; metadata->name.len; metadata++) {
+        hk = ngx_array_push(&actions);
+        if (hk == NULL) {
+            return NGX_ERROR;
+        }
+
+        hk->key = metadata->name;
+        hk->key_hash = ngx_hash_key_lc(metadata->name.data, metadata->name.len);
+        hk->value = metadata;
+    }
+
+    hash.hash = actions_in_hash;
+    hash.key = ngx_hash_key_lc;
+    hash.max_size = 512;
+    hash.bucket_size = ngx_align(64, ngx_cacheline_size);
+    hash.name = "actions_in_hash";
+    hash.pool = cf->pool;
+    hash.temp_pool = NULL;
+
+    if (ngx_hash_init(&hash, actions.elts, actions.nelts) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
 

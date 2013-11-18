@@ -14,6 +14,8 @@ extern ngx_int_t yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf, ngx_hash_t *h
 
 extern ngx_int_t yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
 
+extern ngx_int_t yy_sec_waf_init_actions_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
+
 ngx_int_t
 ngx_http_yy_sec_waf_create_rule_engine(ngx_conf_t *cf)
 {
@@ -28,7 +30,73 @@ ngx_http_yy_sec_waf_create_rule_engine(ngx_conf_t *cf)
     if (yy_sec_waf_init_operators_in_hash(cf, &rule_engine->operators_in_hash) == NGX_ERROR)
         return NGX_ERROR;
 
+    if (yy_sec_waf_init_actions_in_hash(cf, &rule_engine->actions_in_hash) == NGX_ERROR)
+        return NGX_ERROR;
+
     return NGX_OK;
+}
+
+/*
+** @description: This function is called to resolve variables in hash.
+** @para: ngx_str_t *variable
+** @return: static re_var_metadata *
+*/
+
+static re_var_metadata *
+yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable)
+{
+    ngx_uint_t key;
+    re_var_metadata *metadata;
+
+	key = ngx_hash_key_lc(variable->data, variable->len);
+    ngx_strlow(variable->data, variable->data, variable->len);
+
+    metadata = (re_var_metadata *)ngx_hash_find(
+        &rule_engine->variables_in_hash, key, variable->data, variable->len);
+
+    return metadata;
+}
+
+/*
+** @description: This function is called to resolve operators in hash.
+** @para: ngx_str_t *operator
+** @return: static re_op_metadata *
+*/
+
+static re_op_metadata *
+yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator)
+{
+    ngx_uint_t key;
+    re_op_metadata *metadata;
+
+	key = ngx_hash_key_lc(operator->data, operator->len);
+    ngx_strlow(operator->data, operator->data, operator->len);
+
+    metadata = (re_op_metadata *)ngx_hash_find(
+        &rule_engine->operators_in_hash, key, operator->data, operator->len);
+
+    return metadata;
+}
+
+/*
+** @description: This function is called to resolve actions in hash.
+** @para: ngx_str_t *action
+** @return: static re_action_metadata *
+*/
+
+static re_action_metadata *
+yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action)
+{
+    ngx_uint_t key;
+    re_action_metadata *metadata;
+
+    key = ngx_hash_key_lc(action->data, action->len);
+    ngx_strlow(action->data, action->data, action->len);
+
+    metadata = (re_action_metadata *)ngx_hash_find(
+        &rule_engine->actions_in_hash, key, action->data, action->len);
+
+    return metadata;
 }
 
 /*
@@ -45,8 +113,8 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 {
     ngx_http_yy_sec_waf_loc_conf_t  *p = conf;
 
-    ngx_uint_t        i, n, key;
-    ngx_str_t        *value, variable, operator;
+    ngx_uint_t        n;
+    ngx_str_t        *value, variable, operator, action;
     ngx_http_yy_sec_waf_rule_t rule, *rule_p;
 
     value = cf->args->elts;
@@ -60,37 +128,46 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
         ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
     }
 
-    key = ngx_hash_key_lc(variable.data, variable.len);
-    ngx_strlow(variable.data, variable.data, variable.len);
+    rule.var_metadata = yy_sec_waf_re_resolve_variable_in_hash(&variable); 
 
-    rule.var_metadata = (re_var_metadata *)ngx_hash_find(
-        &rule_engine->variables_in_hash, key, variable.data, variable.len); 
+    if (rule.var_metadata == NULL) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve variable");
+        return NGX_CONF_ERROR;
+    }
 
 	/* operator */
     ngx_memcpy(&operator, &value[2], sizeof(ngx_str_t));
     u_char *pos = ngx_strlchr(operator.data, operator.data+operator.len, ':');
-	key = ngx_hash_key_lc(operator.data, pos - operator.data);
-    ngx_strlow(operator.data, operator.data, pos - operator.data);
+    operator.len = pos-operator.data;
 
-	rule.op_metadata = (re_op_metadata *)ngx_hash_find(
-		&rule_engine->operators_in_hash, key, operator.data, pos - operator.data);
+	rule.op_metadata = yy_sec_waf_re_resolve_operator_in_hash(&operator);
 
-    if (rule.op_metadata->parse(cf, &operator, &rule) != NGX_CONF_OK) {
+    if (rule.op_metadata == NULL) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve operator");
+        return NGX_CONF_ERROR;
+    }
+
+    if (rule.op_metadata->parse(cf, &value[2], &rule) != NGX_CONF_OK) {
         ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%V'", &operator);
         return NGX_CONF_ERROR;
     }
 
+    /* action */
     for (n = 3; n < cf->args->nelts; n++) {
-        for (i = 0; action_metadata[i].parse; i++) {
-            if (!ngx_strncasecmp((u_char*)value[n].data,
-                (u_char*)action_metadata[i].name.data, action_metadata[i].name.len)) {
-                if (action_metadata[i].parse(cf, &value[n], &rule) != NGX_CONF_OK) {
-                    ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%s'", value[n].data);
-                    return NGX_CONF_ERROR;
-                }
-    
-                break;
-            }
+        ngx_memcpy(&action, &value[n], sizeof(ngx_str_t));
+        u_char *pos = ngx_strlchr(action.data, action.data+action.len, ':');
+        action.len = pos-action.data;
+
+        rule.action_metadata = yy_sec_waf_re_resolve_action_in_hash(&action);
+
+        if (rule.action_metadata == NULL) {
+            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve action");
+            return NGX_CONF_ERROR;
+        }
+
+        if (rule.action_metadata->parse(cf, &value[n], &rule) != NGX_CONF_OK) {
+            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%V'", &action);
+            return NGX_CONF_ERROR;
         }
     }
 

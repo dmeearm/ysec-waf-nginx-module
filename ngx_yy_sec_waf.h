@@ -42,6 +42,7 @@ typedef struct ngx_http_yy_sec_waf_rule {
     re_var_metadata *var_metadata;
     re_op_metadata *op_metadata;
     re_tfs_metadata *tfs_metadata;
+    re_action_metadata *action_metadata;
 
     /* LEVEL*/
     ngx_flag_t    log:1;
@@ -53,9 +54,6 @@ typedef struct {
     /* ngx_http_yy_sec_waf_rule_t */
     ngx_array_t *request_header_rules;
     ngx_array_t *request_body_rules;
-
-    ngx_hash_t *variables_in_hash;
-    ngx_hash_t *operators_in_hash;
 
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
