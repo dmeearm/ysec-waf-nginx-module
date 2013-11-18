@@ -160,7 +160,7 @@ ngx_http_yy_sec_waf_generate_inner_var(void *rule_p,
     return NGX_OK;
 }
 
-re_var_metadata var_metadata[] = {
+static re_var_metadata var_metadata[] = {
     { ngx_string("ARGS"), ngx_http_yy_sec_waf_generate_args },
     { ngx_string("PROCESS_BODY_ERROR"), ngx_http_yy_sec_waf_generate_process_body_error },
     { ngx_string("MULTIPART_NAME"), ngx_http_yy_sec_waf_generate_multipart_name},
@@ -170,7 +170,8 @@ re_var_metadata var_metadata[] = {
 };
 
 ngx_int_t
-yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf, ngx_http_yy_sec_waf_loc_conf_t *ysec_cf)
+yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf,
+    ngx_hash_t *variables_in_hash)
 {
     ngx_array_t         variables;
     ngx_hash_key_t     *hk;
@@ -194,7 +195,7 @@ yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf, ngx_http_yy_sec_waf_loc_conf_t
         hk->value = metadata;
     }
 
-    hash.hash = &ysec_cf->variables_in_hash;
+    hash.hash = variables_in_hash;
     hash.key = ngx_hash_key_lc;
     hash.max_size = 512;
     hash.bucket_size = ngx_align(64, ngx_cacheline_size);

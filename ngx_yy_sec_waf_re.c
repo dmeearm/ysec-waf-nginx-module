@@ -8,6 +8,29 @@
 
 #include "ngx_yy_sec_waf.h"
 
+static yy_sec_waf_re_t *rule_engine;
+
+extern ngx_int_t yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
+
+extern ngx_int_t yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
+
+ngx_int_t
+ngx_http_yy_sec_waf_create_rule_engine(ngx_conf_t *cf)
+{
+    rule_engine = ngx_pcalloc(cf->pool, sizeof(yy_sec_waf_re_t));
+    if (rule_engine == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (yy_sec_waf_init_variables_in_hash(cf, &rule_engine->variables_in_hash) == NGX_ERROR)
+        return NGX_ERROR;
+
+    if (yy_sec_waf_init_operators_in_hash(cf, &rule_engine->operators_in_hash) == NGX_ERROR)
+        return NGX_ERROR;
+
+    return NGX_OK;
+}
+
 /*
 ** @description: This function is called to read configuration of yy sec waf.
 ** @para: ngx_conf_t *cf
@@ -22,14 +45,42 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 {
     ngx_http_yy_sec_waf_loc_conf_t  *p = conf;
 
-    ngx_uint_t        i, n;
-    ngx_str_t        *value;
+    ngx_uint_t        i, n, key;
+    ngx_str_t        *value, variable, operator;
     ngx_http_yy_sec_waf_rule_t rule, *rule_p;
 
     value = cf->args->elts;
     ngx_memset(&rule, 0, sizeof(ngx_http_yy_sec_waf_rule_t));
 
-    for (n = 1; n < cf->args->nelts; n++) {
+    /* variable */
+    if (value[1].data[0] == '$') {
+        rule.var_index = ngx_http_get_variable_index(cf, &value[1]);
+        ngx_str_set(&variable, '$');
+    } else {
+        ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
+    }
+
+    key = ngx_hash_key_lc(variable.data, variable.len);
+    ngx_strlow(variable.data, variable.data, variable.len);
+
+    rule.var_metadata = (re_var_metadata *)ngx_hash_find(
+        &rule_engine->variables_in_hash, key, variable.data, variable.len); 
+
+	/* operator */
+    ngx_memcpy(&operator, &value[2], sizeof(ngx_str_t));
+    u_char *pos = ngx_strlchr(operator.data, operator.data+operator.len, ':');
+	key = ngx_hash_key_lc(operator.data, pos - operator.data);
+    ngx_strlow(operator.data, operator.data, pos - operator.data);
+
+	rule.op_metadata = (re_op_metadata *)ngx_hash_find(
+		&rule_engine->operators_in_hash, key, operator.data, pos - operator.data);
+
+    if (rule.op_metadata->parse(cf, &operator, &rule) != NGX_CONF_OK) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%V'", &operator);
+        return NGX_CONF_ERROR;
+    }
+
+    for (n = 3; n < cf->args->nelts; n++) {
         for (i = 0; action_metadata[i].parse; i++) {
             if (!ngx_strncasecmp((u_char*)value[n].data,
                 (u_char*)action_metadata[i].name.data, action_metadata[i].name.len)) {
@@ -41,26 +92,6 @@ ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
                 break;
             }
         }
-
-
-        for (i = 1; op_metadata[i].name.len; i++) {
-            if (!ngx_strncasecmp((u_char*)value[n].data,
-                (u_char*)op_metadata[i].name.data, op_metadata[i].name.len)) {
-                if (op_metadata[i].parse(cf, &value[n], &rule) != NGX_CONF_OK) {
-                    ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%s'", value[n].data);
-                    return NGX_CONF_ERROR;
-                }
-
-                rule.op_metadata = &op_metadata[i];
-                break;
-            }
-        }
-
-    }
-
-    if (rule.regex == NULL && rule.str == NULL && rule.eq == NULL) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] No operation for rule(id=%d)", rule.rule_id);
-        return NGX_CONF_ERROR;
     }
 
     if (rule.phase == 1) {

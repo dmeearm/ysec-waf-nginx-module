@@ -194,7 +194,7 @@ ngx_http_yy_sec_waf_execute_eq(ngx_http_request_t *r,
 }
 
 
-re_op_metadata op_metadata[] = {
+static re_op_metadata op_metadata[] = {
     { ngx_string("str"), ngx_http_yy_sec_waf_parse_str, ngx_http_yy_sec_waf_execute_str },
     { ngx_string("regex"), ngx_http_yy_sec_waf_parse_regex, ngx_http_yy_sec_waf_execute_regex },
     { ngx_string("eq"), ngx_http_yy_sec_waf_parse_eq, ngx_http_yy_sec_waf_execute_eq },
@@ -202,7 +202,8 @@ re_op_metadata op_metadata[] = {
 };
 
 ngx_int_t
-yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf, ngx_http_yy_sec_waf_loc_conf_t *ysec_cf)
+yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
+    ngx_hash_t *operators_in_hash)
 {
     ngx_array_t         operators;
     ngx_hash_key_t     *hk;
@@ -226,7 +227,7 @@ yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf, ngx_http_yy_sec_waf_loc_conf_t
         hk->value = metadata;
     }
 
-    hash.hash = &ysec_cf->operators_in_hash;
+    hash.hash = operators_in_hash;
     hash.key = ngx_hash_key_lc;
     hash.max_size = 512;
     hash.bucket_size = ngx_align(64, ngx_cacheline_size);

@@ -500,14 +500,14 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         full_body.len = (ngx_uint_t) (r->request_body->bufs->buf->last
             - r->request_body->bufs->buf->pos);
 
-        full_body.data = ngx_pcalloc(r->pool, (ngx_uint_t) (full_body.len));
+        full_body.data = ngx_pcalloc(r->pool, full_body.len+1);
 
         ngx_memcpy(full_body.data, r->request_body->bufs->buf->pos, full_body.len);
     } else {
         for (full_body.len = 0, bb = r->request_body->bufs; bb; bb = bb->next)
             full_body.len += bb->buf->last - bb->buf->pos;
 
-        full_body.data = ngx_pcalloc(r->pool, full_body.len);
+        full_body.data = ngx_pcalloc(r->pool, full_body.len+1);
 
         if (full_body.data == NULL)
             return NGX_ERROR;

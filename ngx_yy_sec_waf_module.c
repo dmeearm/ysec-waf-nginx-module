@@ -8,6 +8,7 @@
 
 #include "ngx_yy_sec_waf.h"
 
+static ngx_int_t ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf);
 static ngx_int_t ngx_http_yy_sec_waf_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_yy_sec_waf_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
@@ -17,6 +18,7 @@ static void ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r);
 static void * ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf,
     void *parent, void *child);
+
 static ngx_http_request_ctx_t* ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf);
 
@@ -27,11 +29,7 @@ extern char * ngx_http_yy_sec_waf_read_conf(ngx_conf_t *cf,
 extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
 
-extern ngx_int_t yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf,
-    ngx_http_yy_sec_waf_loc_conf_t *ysec_cf);
-
-extern ngx_int_t yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
-    ngx_http_yy_sec_waf_loc_conf_t *ysec_cf);
+extern ngx_int_t ngx_http_yy_sec_waf_create_rule_engine(ngx_conf_t *cf);
 
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
@@ -93,7 +91,7 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
 
 
 static ngx_http_module_t  ngx_http_yy_sec_waf_module_ctx = {
-    NULL,                                  /* preconfiguration */
+    ngx_http_yy_sec_waf_preconfiguration,  /* preconfiguration */
     ngx_http_yy_sec_waf_init,              /* postconfiguration */
 
     NULL,                                  /* create main configuration */
@@ -176,6 +174,12 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     return NGX_CONF_OK;
 }
 
+static ngx_int_t
+ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf)
+{
+    return ngx_http_yy_sec_waf_create_rule_engine(cf);
+}
+
 /*
 ** @description: This function is called to init yy sec waf in process of postconfiguration.
 ** @para: ngx_conf_t *cf
@@ -187,7 +191,6 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
 {
     ngx_http_handler_pt            *h;
     ngx_http_core_main_conf_t      *cmcf;
-    ngx_http_yy_sec_waf_loc_conf_t *ysec_cf;
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
@@ -198,20 +201,6 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
     }
 
     *h = ngx_http_yy_sec_waf_handler;
-
-    ysec_cf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_yy_sec_waf_module);
-
-    if (ysec_cf == NULL) {
-        return NGX_ERROR;
-    }
-
-    if (yy_sec_waf_init_variables_in_hash(cf, ysec_cf) == NGX_ERROR) {
-        return NGX_ERROR;
-    }
-
-    if (yy_sec_waf_init_operators_in_hash(cf, ysec_cf) == NGX_ERROR) {
-        return NGX_ERROR;
-    }
 
     return NGX_OK;
 }
@@ -446,8 +435,18 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     }
 
     ctx->args = ngx_palloc(r->pool, sizeof(ngx_str_t));
-    ctx->args->data = ngx_pstrdup(r->pool, &r->args);
+    if (ctx->args == NULL) {
+        return NULL;
+    }
+
     ctx->args->len = r->args.len;
+    ctx->args->data = ngx_pcalloc(r->pool, r->args.len+1);
+    if (ctx->args->data == NULL) {
+        return NULL;
+    }
+
+    ngx_memcpy(ctx->args->data, r->args.data, ctx->args->len);
+
     ngx_yy_sec_waf_unescape(ctx->args);
 
     ctx->post_args = ngx_palloc(r->pool, sizeof(ngx_str_t));
