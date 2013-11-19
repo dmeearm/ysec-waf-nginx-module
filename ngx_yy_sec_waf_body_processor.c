@@ -539,7 +539,7 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         full_body->data = src;
     }
 
-    ngx_yy_sec_waf_unescape(full_body);
+    //ngx_yy_sec_waf_unescape(full_body);
 
     if (!ngx_strncasecmp(r->headers_in.content_type->value.data,
         (u_char*)"multipart/form-data", ngx_strlen("multipart/form-data"))) {
