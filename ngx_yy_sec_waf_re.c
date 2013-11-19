@@ -109,6 +109,154 @@ yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action)
 }
 
 /*
+** @description: This function is called to execute operator.
+** @para: ngx_http_request_t *r
+** @para: ngx_str_t *str
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @return: RULE_MATCH or RULE_NO_MATCH if failed.
+*/
+
+static ngx_int_t
+yy_sec_waf_re_op_execute(ngx_http_request_t *r,
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
+{
+    ngx_int_t rc;
+
+	rc = rule->op_metadata->execute(r, str, rule);
+
+    if (rc == RULE_MATCH) {
+        ctx->matched = 1;
+        ctx->rule_id = rule->rule_id;
+        ctx->allow = rule->allow;
+        ctx->block = rule->block;
+        ctx->log = rule->log;
+        ctx->gids = rule->gids;
+        ctx->msg = rule->msg;
+        ctx->matched_string = str;
+        return RULE_MATCH;
+    }
+
+    return rc;
+}
+
+/*
+** @description: This function is called to process normal rules for yy sec waf.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
+** @para: ngx_http_request_ctx_t *ctx
+** @return: RULE_MATCH or RULE_NO_MATCH if failed.
+*/
+
+static ngx_int_t
+yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
+{
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Entry");
+
+    ngx_http_yy_sec_waf_rule_t *header_rule, *body_rule;
+    ngx_uint_t i, j;
+	ngx_int_t rc;
+    ngx_str_t *var;
+	ngx_array_t *var_array;
+
+    if (ctx->cf->request_header_rules != NULL) {
+        header_rule = cf->request_header_rules->elts;
+
+        ctx->phase = REQUEST_HEADER_PHASE;
+        for (i=0; i < cf->request_header_rules->nelts; i++) {
+
+            if (header_rule[i].var_metadata == NULL || header_rule[i].var_metadata->generate == NULL)
+                continue;
+			var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+
+            header_rule[i].var_metadata->generate(&header_rule[i], ctx, var_array);
+
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]1 %d", header_rule[i].rule_id);
+
+            var = var_array->elts;
+            for (j = 0; j < var_array->nelts; j++) {
+
+				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]2 %d %V", header_rule[i].rule_id, &var[j]);
+                rc = yy_sec_waf_re_op_execute(r, &var[j], &header_rule[i], ctx);
+    			
+                if (rc == NGX_ERROR) {
+                    return rc;
+                } else if (rc == RULE_MATCH) {
+                    return NGX_OK;
+                } else if (rc == RULE_NO_MATCH) {
+                    continue;
+                }
+            }
+
+            ngx_array_destroy(var_array);
+        }
+    }
+
+    if (cf->request_body_rules && r->request_body 
+        && (r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)) {
+        body_rule = cf->request_body_rules->elts;
+
+
+        ctx->phase = REQUEST_BODY_PHASE;
+        for (i=0; i < cf->request_body_rules->nelts; i++) {
+			var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+
+            body_rule[i].var_metadata->generate(&body_rule[i], ctx, var_array);
+
+            var = var_array->elts;
+            for (j = 0; j < var_array->nelts; j++) {
+
+				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]3 %d %V", body_rule[i].rule_id, &var[j]);
+
+                rc = yy_sec_waf_re_op_execute(r, &var[j], &body_rule[i], ctx);
+                
+                if (rc == NGX_ERROR) {
+                    return rc;
+                } else if (rc == RULE_MATCH) {
+                    return NGX_OK;
+                } else if (rc == RULE_NO_MATCH) {
+                    continue;
+                }
+            }
+
+            ngx_array_destroy(var_array);
+        }
+    }
+
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Exit");
+
+    return NGX_OK;
+}
+
+/*
+** @description: This function is called to process the request.
+** @para: ngx_http_request_t *r
+** @para: ngx_conf_t *cf
+** @para: ngx_http_request_ctx_t *ctx
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+ngx_int_t
+ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
+{
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Entry");
+
+    /* TODO: process body, need test case for this situation. */
+    if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
+        && r->request_body) {
+        ngx_http_yy_sec_waf_process_body(r, cf, ctx);
+    }
+
+    yy_sec_waf_re_process_normal_rules(r, cf, ctx);
+
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Exit");
+
+    return NGX_OK;
+}
+
+/*
 ** @description: This function is called to read configuration of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_command_t *cmd
@@ -246,153 +394,5 @@ ngx_http_yy_sec_waf_re_read_du_loc_conf(ngx_conf_t *cf,
     p->denied_url->len = value[1].len;
 
     return NGX_CONF_OK;
-}
-
-/*
-** @description: This function is called to execute operator.
-** @para: ngx_http_request_t *r
-** @para: ngx_str_t *str
-** @para: ngx_http_yy_sec_waf_rule_t *rule
-** @para: ngx_http_request_ctx_t *ctx
-** @return: RULE_MATCH or RULE_NO_MATCH if failed.
-*/
-
-static ngx_int_t
-yy_sec_waf_re_op_execute(ngx_http_request_t *r,
-    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
-{
-    ngx_int_t rc;
-
-	rc = rule->op_metadata->execute(r, str, rule);
-
-    if (rc == RULE_MATCH) {
-        ctx->matched = 1;
-        ctx->rule_id = rule->rule_id;
-        ctx->allow = rule->allow;
-        ctx->block = rule->block;
-        ctx->log = rule->log;
-        ctx->gids = rule->gids;
-        ctx->msg = rule->msg;
-        ctx->matched_string = str;
-        return RULE_MATCH;
-    }
-
-    return rc;
-}
-
-/*
-** @description: This function is called to process normal rules for yy sec waf.
-** @para: ngx_http_request_t *r
-** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @return: RULE_MATCH or RULE_NO_MATCH if failed.
-*/
-
-static ngx_int_t
-yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Entry");
-
-    ngx_http_yy_sec_waf_rule_t *header_rule, *body_rule;
-    ngx_uint_t i, j;
-	ngx_int_t rc;
-    ngx_str_t *var;
-	ngx_array_t *var_array;
-
-    if (ctx->cf->request_header_rules != NULL) {
-        header_rule = cf->request_header_rules->elts;
-
-        ctx->phase = REQUEST_HEADER_PHASE;
-        for (i=0; i < cf->request_header_rules->nelts; i++) {
-
-            if (header_rule[i].var_metadata == NULL || header_rule[i].var_metadata->generate == NULL)
-                continue;
-			var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
-
-            header_rule[i].var_metadata->generate(&header_rule[i], ctx, var_array);
-
-			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] %d", header_rule[i].rule_id);
-
-            var = var_array->elts;
-            for (j = 0; j < var_array->nelts; j++) {
-
-				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] %d %V", header_rule[i].rule_id, &var[j]);
-                rc = yy_sec_waf_re_op_execute(r, &var[j], &header_rule[i], ctx);
-    			
-                if (rc == NGX_ERROR) {
-                    return rc;
-                } else if (rc == RULE_MATCH) {
-                    return NGX_OK;
-                } else if (rc == RULE_NO_MATCH) {
-                    continue;
-                }
-            }
-
-            ngx_array_destroy(var_array);
-        }
-    }
-
-    if (cf->request_body_rules && r->request_body 
-        && (r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)) {
-        body_rule = cf->request_body_rules->elts;
-
-
-        ctx->phase = REQUEST_BODY_PHASE;
-        for (i=0; i < cf->request_body_rules->nelts; i++) {
-			var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
-
-            body_rule[i].var_metadata->generate(&body_rule[i], ctx, var_array);
-
-            var = var_array->elts;
-            for (j = 0; j < var_array->nelts; j++) {
-
-				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] %d %V", body_rule[i].rule_id, &var[j]);
-
-                rc = yy_sec_waf_re_op_execute(r, &var[j], &body_rule[i], ctx);
-                
-                if (rc == NGX_ERROR) {
-                    return rc;
-                } else if (rc == RULE_MATCH) {
-                    return NGX_OK;
-                } else if (rc == RULE_NO_MATCH) {
-                    continue;
-                }
-            }
-
-            ngx_array_destroy(var_array);
-        }
-    }
-
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Exit");
-
-    return NGX_OK;
-}
-
-/*
-** @description: This function is called to process the request.
-** @para: ngx_http_request_t *r
-** @para: ngx_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @return: NGX_OK or NGX_ERROR if failed.
-*/
-
-ngx_int_t
-ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Entry");
-
-    /* TODO: process body, need test case for this situation. */
-    if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
-        && r->request_body) {
-        ngx_http_yy_sec_waf_process_body(r, cf, ctx);
-    }
-
-    yy_sec_waf_re_process_normal_rules(r, cf, ctx);
-
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Exit");
-
-    return NGX_OK;
 }
 

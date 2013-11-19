@@ -308,11 +308,12 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                     "[ysec_waf] rule matched, id=%d,"
                     " total processed=%d, total matched=%d, total blocked=%d, total allowed=%d,"
-                    " matched string=%V,"
+                    " error msg=%V,"
                     " %s",
                     ctx->rule_id,
                     cf->request_processed, cf->request_matched, cf->request_blocked, cf->request_allowed,
-                    ctx->matched_string, ctx->allow? "allowed": "blocked");
+                    ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string,
+                    ctx->allow? "allowed": "blocked");
             }
 
             if (ctx->allow)
@@ -460,6 +461,8 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ctx->multipart_filename = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
     ctx->multipart_name = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
     ctx->content_type = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+
+    ctx->process_body_error = 0;
 
     ctx->r = r;
     ctx->cf = cf;

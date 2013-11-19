@@ -21,7 +21,7 @@ __DATA__
 eh yo
 --- config
 location / {
-  include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
+  include /home/liqi/yy-sec-waf-1.2.3/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
@@ -60,7 +60,7 @@ buibuibuib
 eh yo
 --- config
 location / {
-  include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
+  include /home/liqi/yy-sec-waf-1.2.3/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
@@ -97,7 +97,7 @@ Content-Type: application/x-httpd-php\r
 eh yo
 --- config
 location / {
-  include /home/liqi/yy-sec-waf-1.2.3/t/yy_sec_waf.conf;
+  include /home/liqi/yy-sec-waf-1.2.3/yy_sec_waf.conf;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;

@@ -83,7 +83,7 @@ typedef struct {
     ngx_array_t *content_type;
 
     ngx_int_t  process_body_error;
-    ngx_str_t *process_body_error_msg;
+    ngx_str_t  process_body_error_msg;
     ngx_uint_t post_args_len;
 
     ngx_int_t  var_index;
