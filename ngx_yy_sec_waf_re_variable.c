@@ -63,7 +63,7 @@ ngx_http_yy_sec_waf_generate_process_body_error(void *rule_p,
 
     var = ngx_array_push(var_array);
 
-    if (ctx->process_body_error < 16 && ctx->process_body_error > 9) {
+    if (ctx->process_body_error == 1) {
         ngx_str_set(var, "1");
     } else {
         ngx_str_set(var, "0");

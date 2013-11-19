@@ -120,7 +120,8 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
 		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, nullbytes=%d", &value, nullbytes);
 
 		if (nullbytes > 0) {
-			ctx->process_body_error = UNCOMMON_HEX_ENCODING;
+            ctx->process_body_error = 1;
+            ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_HEX_ENCODING");
             return NGX_ERROR;
 		}
 
@@ -292,7 +293,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     }
 
     if (ngx_http_yy_sec_waf_process_boundary(r, &boundary, &boundary_len) != NGX_OK) {
-        ctx->process_body_error = UNCOMMON_CONTENT_TYPE;
+        ctx->process_body_error = 1;
         ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_CONTENT_TYPE");
         return NGX_ERROR;
     }
@@ -315,7 +316,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             if (ngx_strncmp(full_body->data+idx, "--", 2)
                 || ngx_strncmp(full_body->data+idx+2, boundary, boundary_len)
                 || ngx_strncmp(full_body->data+idx+boundary_len+2, "--", 2)) {
-                ctx->process_body_error = UNCOMMON_POST_FORMAT;
+                ctx->process_body_error = 1;
                 ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_POST_FORMAT");
                 return NGX_ERROR;
             } else
@@ -329,7 +330,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             || idx+boundary_len+2+2 >= full_body->len
             || full_body->data[idx+boundary_len+2] != '\r'
             || full_body->data[idx+boundary_len+2+1] != '\n') {
-            ctx->process_body_error = UNCOMMON_POST_BOUNDARY;
+            ctx->process_body_error = 1;
             ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_POST_BOUNDARY");
             return NGX_ERROR;
         }
@@ -338,7 +339,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         idx += boundary_len + 4;
         if (ngx_strncasecmp(full_body->data+idx, (u_char*)"content-disposition: form-data;",
             ngx_strlen("content-disposition: form-data;"))) {
-            ctx->process_body_error = UNCOMMON_POST_FORMAT;
+            ctx->process_body_error = 1;
             ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_POST_FORMAT");
             return NGX_ERROR;
         }
@@ -348,7 +349,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         /* ignore 0x00 for %00 injection situation */
         line_end = (u_char*) ngx_strlchr(full_body->data+idx, full_body->data+full_body->len, '\n');
         if (!line_end) {
-            ctx->process_body_error = UNCOMMON_POST_FORMAT;
+            ctx->process_body_error = 1;
             ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_POST_FORMAT");
             return NGX_ERROR;
         }
@@ -375,7 +376,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             line_start = line_end + 1;
             line_end = (u_char*) ngx_strchr(line_start, '\n');
             if (!line_end) {
-                ctx->process_body_error = UNCOMMON_POST_FORMAT;
+                ctx->process_body_error = 1;
                 ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_POST_FORMAT");
                 return NGX_ERROR;
             }
@@ -392,7 +393,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
         idx += (u_char*)line_end - (full_body->data + idx) + 1;
         if (full_body->data[idx] != '\r' || full_body->data[idx+1] != '\n') {
-            ctx->process_body_error = UNCOMMON_POST_FORMAT;
+            ctx->process_body_error = 1;
             ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_POST_FORMAT");
             return NGX_ERROR;
         }
@@ -412,7 +413,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             }
 
             if (!body_end) {
-                ctx->process_body_error = UNCOMMON_POST_FORMAT;
+                ctx->process_body_error = 1;
                 ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_POST_FORMAT");
                 return NGX_ERROR;
             }
@@ -432,7 +433,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
         if (filename.data) {
             nullbytes = ngx_yy_sec_waf_unescape(&filename);
             if (nullbytes > 0) {
-                ctx->process_body_error = UNCOMMON_HEX_ENCODING;
+                ctx->process_body_error = 1;
                 ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_HEX_ENCODING");
                 return NGX_ERROR;
             }
@@ -447,7 +448,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
                 if (!ngx_strnstr(filename.data, ".html", filename.len)
                     || !ngx_strnstr(filename.data, ".html", filename.len)) {
                     if (!ngx_strncmp(content_type.data, "text/html", content_type.len)) {
-                        ctx->process_body_error = UNCOMMON_FILENAME;
+                        ctx->process_body_error = 1;
                         ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_FILENAME");
 						return NGX_ERROR;
                     }
@@ -455,7 +456,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
                 else if (!ngx_strnstr(filename.data, ".php", filename.len)
                     || !ngx_strnstr(filename.data, ".jsp", filename.len)) {
                     if (!ngx_strncmp(content_type.data, "application/octet-stream", content_type.len)) {
-                        ctx->process_body_error = UNCOMMON_FILENAME;
+                        ctx->process_body_error = 1;
                         ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_FILENAME");
 						return NGX_ERROR;
                     }
@@ -498,7 +499,8 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
     ngx_str_t   *full_body;
 
     if (!r->request_body->bufs || !r->headers_in.content_type) {
-        ctx->process_body_error = UNCOMMON_CONTENT_TYPE;
+        ctx->process_body_error = 1;
+        ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_CONTENT_TYPE");
         return NGX_ERROR;
     }
 

@@ -57,8 +57,14 @@ yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable)
     ngx_uint_t key;
     re_var_metadata *metadata;
 
+    if (variable == NULL) {
+        return NULL;
+    }
+
 	key = ngx_hash_key_lc(variable->data, variable->len);
-    ngx_strlow(variable->data, variable->data, variable->len);
+    if (variable->data[0] != '$') {
+        ngx_strlow(variable->data, variable->data, variable->len);
+    }
 
     metadata = (re_var_metadata *)ngx_hash_find(
         &rule_engine->variables_in_hash, key, variable->data, variable->len);
@@ -77,6 +83,10 @@ yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator)
 {
     ngx_uint_t key;
     re_op_metadata *metadata;
+
+    if (operator == NULL) {
+        return NULL;
+    }
 
 	key = ngx_hash_key_lc(operator->data, operator->len);
     ngx_strlow(operator->data, operator->data, operator->len);
@@ -98,6 +108,10 @@ yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action)
 {
     ngx_uint_t key;
     re_action_metadata *metadata;
+
+    if (action == NULL) {
+        return NULL;
+    }
 
     key = ngx_hash_key_lc(action->data, action->len);
     ngx_strlow(action->data, action->data, action->len);
@@ -279,8 +293,10 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
 
     /* variable */
     if (value[1].data[0] == '$') {
-        rule.var_index = ngx_http_get_variable_index(cf, &value[1]);
-        ngx_str_set(&variable, '$');
+        ngx_memcpy(variable.data, &value[1].data[1], value[1].len);
+        variable.len = value[1].len-1;
+        rule.var_index = ngx_http_get_variable_index(cf, &variable);
+        ngx_str_set(&variable, "$");
     } else {
         ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
     }
