@@ -97,12 +97,12 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     }
 
     ctx->post_args->len = str->len;
-    ctx->post_args->data = ngx_pcalloc(r->pool, str->len+1);
+    ctx->post_args->data = ngx_pcalloc(r->pool, str->len);
     if (ctx->post_args->data == NULL) {
         return NGX_ERROR;
     }
 
-    ngx_memcpy(ctx->post_args->data, str->data, ctx->post_args->len);
+    ngx_memcpy(ctx->post_args->data, str->data, str->len);
 
     return NGX_OK;
 }

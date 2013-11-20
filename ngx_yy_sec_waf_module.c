@@ -456,7 +456,7 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
 
     ngx_yy_sec_waf_unescape(ctx->args);
 
-    ctx->post_args = ngx_palloc(r->pool, sizeof(ngx_str_t));
+    ctx->post_args = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
 
     ctx->multipart_filename = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
     ctx->multipart_name = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));

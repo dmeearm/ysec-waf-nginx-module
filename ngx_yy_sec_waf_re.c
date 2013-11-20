@@ -189,9 +189,13 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]1 %d", header_rule[i].rule_id);
 
             var = var_array->elts;
+            if (var == NULL)
+                continue;
+
             for (j = 0; j < var_array->nelts; j++) {
 
 				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]2 %d %V", header_rule[i].rule_id, &var[j]);
+	            
                 rc = yy_sec_waf_re_op_execute(r, &var[j], &header_rule[i], ctx);
     			
                 if (rc == NGX_ERROR) {
@@ -219,9 +223,12 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
             body_rule[i].var_metadata->generate(&body_rule[i], ctx, var_array);
 
             var = var_array->elts;
+            if (var == NULL || var->data == NULL)
+                continue;
+
             for (j = 0; j < var_array->nelts; j++) {
 
-				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]3 %d %V", body_rule[i].rule_id, &var[j]);
+				ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]3 %d %V %p", body_rule[i].rule_id, &var[j], var[j].data);
 
                 rc = yy_sec_waf_re_op_execute(r, &var[j], &body_rule[i], ctx);
                 

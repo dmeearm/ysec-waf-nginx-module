@@ -52,7 +52,7 @@ ngx_http_yy_sec_waf_execute_str(ngx_http_request_t *r,
 {
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
-    if (str == NULL) {
+    if (str == NULL || str->data == NULL) {
         return NGX_ERROR;
     }
 
@@ -118,7 +118,7 @@ ngx_http_yy_sec_waf_execute_regex(ngx_http_request_t *r,
 
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
-    if (str == NULL) {
+    if (str == NULL || str->data == NULL) {
         return NGX_ERROR;
     }
 
@@ -180,7 +180,7 @@ ngx_http_yy_sec_waf_execute_eq(ngx_http_request_t *r,
 {
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
-    if (str == NULL) {
+    if (str == NULL || str->data == NULL) {
         return NGX_ERROR;
     }
 
