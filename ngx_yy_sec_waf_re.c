@@ -344,7 +344,7 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         }
     }
 
-    if (rule.phase == 1) {
+    if (rule.phase & REQUEST_HEADER_PHASE) {
         if (p->request_header_rules == NULL) {
             p->request_header_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
             
@@ -360,7 +360,7 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
     }
 
-    if (rule.phase == 2) {
+    if (rule.phase & REQUEST_BODY_PHASE) {
         if (p->request_body_rules == NULL) {
             p->request_body_rules = ngx_array_create(cf->pool, 1, sizeof(ngx_http_yy_sec_waf_rule_t));
             

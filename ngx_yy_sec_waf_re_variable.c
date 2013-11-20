@@ -31,9 +31,9 @@ ngx_http_yy_sec_waf_generate_args(void *rule_p,
 
     var = ngx_array_push(var_array);
 
-    if (ctx->phase == REQUEST_HEADER_PHASE) {
+    if (ctx->phase & REQUEST_HEADER_PHASE) {
         ngx_memcpy(var, ctx->args, sizeof(ngx_str_t));
-    } else if (ctx->phase == REQUEST_BODY_PHASE) {
+    } else if (ctx->phase & REQUEST_BODY_PHASE) {
         ngx_memcpy(var, ctx->post_args, sizeof(ngx_str_t));
     }
 

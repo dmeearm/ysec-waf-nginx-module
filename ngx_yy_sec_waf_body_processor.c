@@ -9,54 +9,6 @@
 #include "ngx_yy_sec_waf.h"
 
 /*
-** @description: This function is called to process basic rules of the request.
-** @para: ngx_http_request_t *r
-** @para: ngx_str_t *str
-** @para: ngx_array_t *rules
-** @para: ngx_http_request_ctx_t *ctx
-** @return: NGX_OK or NGX_ERROR if failed.
-*/
-
-static ngx_int_t
-ngx_http_yy_sec_waf_process_basic_rules(ngx_http_request_t *r,
-    ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
-{
-    int        rc;
-    ngx_uint_t i;
-    ngx_http_yy_sec_waf_rule_t *rule_p;
-
-    if (rules == NULL)
-        return NGX_ERROR;
-
-    rule_p = rules->elts;
-
-    for (i = 0; i < rules->nelts; i++) {
-        rc = rule_p[i].op_metadata->execute(r, str, &rule_p[i]);
-
-        if (rc == NGX_ERROR) {
-            return rc;
-        } else if (rc == RULE_MATCH) {
-            ctx->matched = 1;
-            break;
-        } else if (rc == RULE_NO_MATCH) {
-            continue;
-        }
-    }
-
-    if (ctx->matched) {
-        ctx->rule_id = rule_p[i].rule_id;
-        ctx->allow = rule_p[i].allow;
-        ctx->block = rule_p[i].block;
-        ctx->log = rule_p[i].log;
-        ctx->gids = rule_p[i].gids;
-        ctx->msg = rule_p[i].msg;
-        ctx->matched_string = str;
-    }
-
-    return NGX_OK;
-}
-
-/*
 ** @description: This function is called to process spliturl rules of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
@@ -144,11 +96,17 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
         buffer++;
     }
 
-	ctx->post_args->data = ngx_pstrdup(r->pool, str);
-	ctx->post_args->len = str->len;
+    ctx->post_args->len = str->len;
+    ctx->post_args->data = ngx_pcalloc(r->pool, str->len+1);
+    if (ctx->post_args->data == NULL) {
+        return NGX_ERROR;
+    }
 
-    return ngx_http_yy_sec_waf_process_basic_rules(r, str, rules, ctx);
+    ngx_memcpy(ctx->post_args->data, str->data, ctx->post_args->len);
+
+    return NGX_OK;
 }
+
 
 /*
 ** @description: This function is called to process the boundary of the request.

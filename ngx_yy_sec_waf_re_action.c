@@ -155,21 +155,32 @@ static void *
 ngx_http_yy_sec_waf_parse_phase(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
-    ngx_str_t *phase;
+
+    u_char *tmp_ptr;
 
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
 
-    phase = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
-    if (!phase)
-        return NGX_CONF_ERROR;
+    tmp_ptr = (u_char*)tmp->data + ngx_strlen(PHASE);
 
-    phase->data = tmp->data + ngx_strlen(PHASE);
-    phase->len = tmp->len - ngx_strlen(PHASE);
+    while (*tmp_ptr) {
+        if (tmp_ptr[0] == ',')
+            tmp_ptr++;
+        /* match global zones */
+        if (tmp_ptr[0] == '1') {
+            rule->phase |= REQUEST_HEADER_PHASE;
+            tmp_ptr += 1;
+            continue;
+        } else if (tmp_ptr[0] == '2') {
+            rule->phase |= REQUEST_BODY_PHASE;
+            tmp_ptr += 1;
+        } else {
+            return NGX_CONF_ERROR;
+        }
+    }
 
-    rule->phase = ngx_atoi(phase->data, phase->len);
 
     return NGX_CONF_OK;
 }
