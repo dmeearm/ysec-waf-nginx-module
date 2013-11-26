@@ -1,6 +1,6 @@
 with-debug:
 	cd $(shell pwd)/../../../../ && $(shell chmod +x $(shell pwd)/../../../../../3rdParty/*/configure) \
-		./configure \
+		./configure --user=www-data --group=www-data --prefix=/usr/local/nginx \
 		--add-module=$(shell pwd) \
 		--add-module=$(shell pwd)/../../../../../3rdParty/nginx_upstream_hash \
 		--add-module=$(shell pwd)/../../../../../3rdParty/simpl-ngx_devel_kit \
@@ -37,7 +37,7 @@ with-debug:
 
 without-debug:
 	cd $(shell pwd)/../../../../ && $(shell chmod +x $(shell pwd)/../../../../../3rdParty/*/configure) \
-		./configure \
+		./configure --user=www-data --group=www-data --prefix=/usr/local/nginx \
 		--add-module=$(shell pwd) \
 		--add-module=$(shell pwd)/../../../../../3rdParty/nginx_upstream_hash \
 		--without-mail_pop3_module \

@@ -22,7 +22,7 @@
 #define LEVEL "lev:"
 #define PHASE "phase:"
 
-#define TFS "tfs:"
+#define TFNS "t:"
 
 /* LEV */
 #define LOG "log"
@@ -61,15 +61,12 @@ typedef struct {
     fn_var_generate_t generate;
 } re_var_metadata;
 
-typedef void* (*fn_tfs_parse_t)(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule);
-typedef ngx_int_t (*fn_tfs_execute_t)(ngx_str_t *str);
+typedef ngx_int_t (*fn_tfns_execute_t)(ngx_str_t *str);
 
 typedef struct {
-    const char *name;
-    fn_tfs_parse_t parse;
-    fn_tfs_execute_t execute;
-} re_tfs_metadata;
+    const ngx_str_t name;
+    fn_tfns_execute_t execute;
+} re_tfns_metadata;
 
 typedef void* (*fn_action_parse_t)(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule);
@@ -79,13 +76,21 @@ typedef struct {
     fn_action_parse_t parse;
 } re_action_metadata;
 
-extern re_tfs_metadata tfs_metadata[];
-
 typedef struct {
     ngx_hash_t variables_in_hash;
     ngx_hash_t operators_in_hash;
     ngx_hash_t actions_in_hash;
+    ngx_hash_t tfns_in_hash;
 } yy_sec_waf_re_t;
+
+re_action_metadata *yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action);
+
+re_op_metadata *yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator);
+
+re_tfns_metadata *yy_sec_waf_re_resolve_tfn_in_hash(ngx_str_t *tfn);
+
+re_var_metadata *yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable);
+
 
 #endif
 

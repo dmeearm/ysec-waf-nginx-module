@@ -7,6 +7,7 @@ NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_yy_sec_waf_module.c
 								$ngx_addon_dir/ngx_yy_sec_waf_re.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_re_operator.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_re_variable.c 
+								$ngx_addon_dir/ngx_yy_sec_waf_re_tfn.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_re_action.c"
 
 

@@ -41,7 +41,7 @@ typedef struct ngx_http_yy_sec_waf_rule {
 
     re_var_metadata *var_metadata;
     re_op_metadata *op_metadata;
-    re_tfs_metadata *tfs_metadata;
+    re_tfns_metadata *tfn_metadata;
     re_action_metadata *action_metadata;
 
     /* LEVEL*/
