@@ -28,7 +28,7 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     if (rules == NULL)
         return NGX_ERROR;
 
-    gx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] data=%p", str->data);
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] data=%p", str->data);
 
     buffer = start = str->data;
     len =  str->len;
