@@ -225,7 +225,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 
             for (j = 0; j < var_array->nelts; j++) {
 
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]2 %d %V", header_rule[i].rule_id, &var[j]);
+                ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]2 %d %V", header_rule[i].rule_id, &var[j]);
 
                 if (header_rule[i].tfn_metadata != NULL) {
                     rc = header_rule[i].tfn_metadata->execute(&var[j]);

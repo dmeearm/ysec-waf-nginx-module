@@ -28,7 +28,7 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     if (rules == NULL)
         return NGX_ERROR;
 
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] data=%p", str->data);
+    gx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] data=%p", str->data);
 
     buffer = start = str->data;
     len =  str->len;
@@ -53,7 +53,7 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
         if (eq) {
             if (!ev)
                 ev = str->data + str->len;
-			arg_len = ev - start;
+            arg_len = ev - start;
             eq = ngx_strlchr(start, start+arg_len, '=');
             if (!eq)
                 return NGX_ERROR;
@@ -65,17 +65,17 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
             break;
         }
 
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, len=%d", &value, value.len);
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, len=%d", &value, value.len);
 
         nullbytes = ngx_yy_sec_waf_unescape(&value);
 
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, nullbytes=%d", &value, nullbytes);
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, nullbytes=%d", &value, nullbytes);
 
-		if (nullbytes > 0) {
+        if (nullbytes > 0) {
             ctx->process_body_error = 1;
             ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_HEX_ENCODING");
             return NGX_ERROR;
-		}
+        }
 
         buffer = ngx_cpymem(buffer, value.data, value.len);
         buffer_size += value.len;
@@ -182,14 +182,14 @@ ngx_http_yy_sec_waf_process_disposition(ngx_http_request_t *r,
 
             str = name_end;
 
-			if (str < line_end + 1)
+            if (str < line_end + 1)
                 str++;
             else
                 return NGX_ERROR;
 
             name->data = name_start;
             name->len = name_end - name_start;
-        } 
+        }
         else if (!ngx_strncmp(str, "filename=\"", ngx_strlen("filename=\""))) {
             filename_end = filename_start = str + ngx_strlen("filename=\"");
             do {
@@ -214,9 +214,9 @@ ngx_http_yy_sec_waf_process_disposition(ngx_http_request_t *r,
         }
         else if (str == line_end - 1)
             break;
-		else {
+        else {
             return NGX_ERROR;
-		}
+        }
     }
 
     if (filename_end > line_end || name_end > line_end)
@@ -258,17 +258,20 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
     ctx->boundary = boundary;
     ctx->boundary_len = boundary_len;
-    
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] boundary: %s", boundary);
 
     idx = 0;
 
     p = ngx_strlcasestrn(full_body->data, full_body->data+full_body->len, boundary, boundary_len-1);
+    if (p == NULL)
+        return NGX_ERROR;
+
     full_body->len = full_body->len - (p - full_body->data - 2);
     full_body->data = p - 2;
 
     while (idx < full_body->len) {
-		ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] request_body: %s, len: %d", full_body->data+idx, full_body->len);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] request_body: %s, len: %d", full_body->data+idx, full_body->len);
 
         if (idx+boundary_len+6 == full_body->len || idx+boundary_len+4 == full_body->len) {
             if (ngx_strncmp(full_body->data+idx, "--", 2)
@@ -342,9 +345,9 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             content_type.data = line_start + ngx_strlen("content-type: ");
             content_type.len = (line_end - 1) - content_type.data;
 
-			tmp = ngx_array_push(ctx->content_type);
-			if (tmp == NULL)
-				return NGX_ERROR;
+            tmp = ngx_array_push(ctx->content_type);
+            if (tmp == NULL)
+                return NGX_ERROR;
 
             ngx_memcpy(tmp, &content_type, sizeof(ngx_str_t));
         }
@@ -400,15 +403,15 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
                 "[ysec_waf] checking filename [%V]", &filename);
 
             if (content_type.data) {
-				ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-					"[ysec_waf] checking content_type [%V]", &content_type);
+                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                    "[ysec_waf] checking content_type [%V]", &content_type);
 
                 if (!ngx_strnstr(filename.data, ".html", filename.len)
                     || !ngx_strnstr(filename.data, ".html", filename.len)) {
                     if (!ngx_strncmp(content_type.data, "text/html", content_type.len)) {
                         ctx->process_body_error = 1;
                         ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_FILENAME");
-						return NGX_ERROR;
+                        return NGX_ERROR;
                     }
                 }
                 else if (!ngx_strnstr(filename.data, ".php", filename.len)
@@ -416,7 +419,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
                     if (!ngx_strncmp(content_type.data, "application/octet-stream", content_type.len)) {
                         ctx->process_body_error = 1;
                         ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_FILENAME");
-						return NGX_ERROR;
+                        return NGX_ERROR;
                     }
                 }
             }
