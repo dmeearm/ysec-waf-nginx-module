@@ -169,7 +169,8 @@ yy_sec_waf_re_op_execute(ngx_http_request_t *r,
 
     rc = rule->op_metadata->execute(r, str, rule);
 
-    if (rc == RULE_MATCH) {
+    if ((rc == RULE_MATCH && !rule->op_negative)
+        || (rc == RULE_NO_MATCH && rule->op_negative)) {
         ctx->matched = 1;
         ctx->rule_id = rule->rule_id;
         ctx->allow = rule->allow;
@@ -365,6 +366,12 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
 
     /* operator */
     ngx_memcpy(&operator, &value[2], sizeof(ngx_str_t));
+
+    if (operator.data[0] == '!') {
+        rule.op_negative = 1;
+        operator.data++;
+    }
+
     pos = ngx_strlchr(operator.data, operator.data+operator.len, ':');
     operator.len = pos-operator.data;
 

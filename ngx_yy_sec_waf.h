@@ -38,6 +38,7 @@ typedef struct ngx_http_yy_sec_waf_rule {
     ngx_int_t  var_index;
 
     ngx_str_t op_name;
+    ngx_flag_t op_negative;
 
     re_var_metadata *var_metadata;
     re_op_metadata *op_metadata;
