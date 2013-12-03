@@ -40,7 +40,7 @@ ngx_yy_sec_waf_unescape(ngx_str_t *str) {
 u_char*
 ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n)
 {
-    const int BUFFER_SIZE = sizeof(int) * 3 + 2;
+    const int BUFFER_SIZE = sizeof(ngx_int_t) * 3 + 2;
     u_char *buf = ngx_palloc(p, BUFFER_SIZE);
 	u_char *start = buf + BUFFER_SIZE - 1;
     int negative;
@@ -61,6 +61,22 @@ ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n)
     if (negative) {
         *--start = '-';
     }
+
+    return start;
+}
+
+u_char*
+ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n)
+{
+    const int BUFFER_SIZE = sizeof(ngx_uint_t) * 3 + 2;
+    u_char *buf = ngx_palloc(p, BUFFER_SIZE);
+	u_char *start = buf + BUFFER_SIZE - 1;
+
+    *start = 0;
+    do {
+        *--start = '0' + (n % 10);
+        n /= 10;
+    } while (n);
 
     return start;
 }

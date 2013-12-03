@@ -429,6 +429,13 @@ ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
     }
 }
 
+/*
+** @description: This function is called to create ctx for this request.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
+** @return: static ngx_http_request_ctx_t*
+*/
+
 static ngx_http_request_ctx_t*
 ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf)
@@ -466,6 +473,7 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
 
     ctx->r = r;
     ctx->cf = cf;
+    ctx->pool = r->pool;
 
     return ctx;
 }

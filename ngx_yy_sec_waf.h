@@ -21,6 +21,7 @@
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 u_char *ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n);
+u_char *ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n);
 
 typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
@@ -66,6 +67,7 @@ typedef struct {
 
 typedef struct {
     ngx_http_request_t *r;
+    ngx_pool_t *pool;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
     ngx_int_t  phase;
 

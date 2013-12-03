@@ -69,7 +69,7 @@ yy_sec_waf_generate_post_args_count(void *rule_p,
     if (var == NULL)
         return NGX_ERROR;
 
-    var->data = ngx_yy_sec_waf_itoa(ctx->r->pool, (ngx_int_t)ctx->post_args_count);
+    var->data = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->post_args_count);
     var->len = ngx_strlen(var->data);
 
     return NGX_OK;
@@ -188,11 +188,16 @@ ngx_http_yy_sec_waf_generate_inner_var(void *rule_p,
             return RULE_NO_MATCH;
         }
 
-        ngx_str_t tmp = {vv->len, vv->data};
-
         var = ngx_array_push(var_array);
-        var->data = ngx_pstrdup(ctx->r->pool, &tmp);
+        if (var == NULL)
+            return NGX_ERROR;
+
+        var->data = ngx_palloc(ctx->pool, vv->len);
+        if (var->data == NULL)
+            return NGX_ERROR;
+
         var->len = vv->len;
+        ngx_memcpy(var->data, vv->data, var->len);
     }
 
     return NGX_OK;
