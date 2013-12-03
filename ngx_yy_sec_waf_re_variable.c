@@ -69,10 +69,8 @@ yy_sec_waf_generate_post_args_count(void *rule_p,
     if (var == NULL)
         return NGX_ERROR;
 
-    var->len = 50;
-    var->data = ngx_pcalloc(ctx->r->pool, var->len);
-
-    ngx_sprintf(var->data, "%ud", ctx->post_args_count);
+    var->data = ngx_yy_sec_waf_itoa(ctx->r->pool, (ngx_int_t)ctx->post_args_count);
+    var->len = ngx_strlen(var->data);
 
     return NGX_OK;
 }
