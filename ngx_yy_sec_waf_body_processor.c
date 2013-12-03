@@ -103,6 +103,8 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     }
 
     ngx_memcpy(ctx->post_args->data, str->data, str->len);
+    ctx->post_args_count = arg_cnt;
+    ctx->post_args_len = str->len;
 
     return NGX_OK;
 }

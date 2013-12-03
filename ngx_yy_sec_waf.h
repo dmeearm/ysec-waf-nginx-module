@@ -76,6 +76,7 @@ typedef struct {
     ngx_str_t *args;
 
     ngx_str_t *post_args;
+    ngx_uint_t post_args_count;
 
     u_char *boundary;
     ngx_uint_t boundary_len;

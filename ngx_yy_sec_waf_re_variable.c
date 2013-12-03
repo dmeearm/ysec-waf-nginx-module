@@ -31,11 +31,48 @@ ngx_http_yy_sec_waf_generate_args(void *rule_p,
 
     var = ngx_array_push(var_array);
 
+    if (var == NULL)
+        return NGX_ERROR;
+
     if (ctx->phase & REQUEST_HEADER_PHASE) {
         ngx_memcpy(var, ctx->args, sizeof(ngx_str_t));
     } else if (ctx->phase & REQUEST_BODY_PHASE) {
         ngx_memcpy(var, ctx->post_args, sizeof(ngx_str_t));
     }
+
+    return NGX_OK;
+}
+
+/*
+** @description: This function is called to generate post args count.
+** @para: void *rule_p
+** @para: void *ctx_p
+** @para: ngx_str_t *var
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+static int
+yy_sec_waf_generate_post_args_count(void *rule_p,
+    void *ctx_p, ngx_array_t *var_array)
+{
+    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
+    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
+
+    ngx_str_t *var;
+
+    if (rule == NULL || ctx == NULL || var_array == NULL) {
+        return NGX_ERROR;
+    }
+
+    var = ngx_array_push(var_array);
+
+    if (var == NULL)
+        return NGX_ERROR;
+
+    var->len = 50;
+    var->data = ngx_pcalloc(ctx->r->pool, var->len);
+
+    ngx_sprintf(var->data, "%u", ctx->post_args_count);
 
     return NGX_OK;
 }
@@ -62,6 +99,9 @@ ngx_http_yy_sec_waf_generate_process_body_error(void *rule_p,
     }
 
     var = ngx_array_push(var_array);
+
+    if (var == NULL)
+        return NGX_ERROR;
 
     if (ctx->process_body_error == 1) {
         ngx_str_set(var, "1");
@@ -162,6 +202,7 @@ ngx_http_yy_sec_waf_generate_inner_var(void *rule_p,
 
 static re_var_metadata var_metadata[] = {
     { ngx_string("ARGS"), ngx_http_yy_sec_waf_generate_args },
+    { ngx_string("POST_ARGS_COUNT"), yy_sec_waf_generate_post_args_count },
     { ngx_string("PROCESS_BODY_ERROR"), ngx_http_yy_sec_waf_generate_process_body_error },
     { ngx_string("MULTIPART_NAME"), ngx_http_yy_sec_waf_generate_multipart_name},
     { ngx_string("MULTIPART_FILENAME"), ngx_http_yy_sec_waf_generate_multipart_filename},
