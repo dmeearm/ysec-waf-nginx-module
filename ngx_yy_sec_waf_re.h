@@ -15,6 +15,7 @@
 #define STR "str:"
 #define REGEX "regex:"
 #define EQ "eq:"
+#define GT "gt:"
 #define GIDS "gids:"
 #define ID "id:"
 #define MSG "msg:"

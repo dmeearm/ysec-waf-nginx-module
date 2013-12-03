@@ -31,6 +31,7 @@ typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */
     ngx_str_t *eq; /* EQ */
+    ngx_str_t *gt;
     ngx_str_t *gids; /* GIDS */
     ngx_str_t *msg; /* MSG */
     ngx_int_t  rule_id;

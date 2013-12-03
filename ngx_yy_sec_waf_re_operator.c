@@ -193,11 +193,72 @@ ngx_http_yy_sec_waf_execute_eq(ngx_http_request_t *r,
     return RULE_NO_MATCH;
 }
 
+/*
+** @description: This function is called to parse gt of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: void *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+yy_sec_waf_parse_gt(ngx_conf_t *cf,
+    ngx_str_t *tmp, void *rule_p)
+{
+    ngx_str_t *gt;
+
+    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
+
+    if (!rule)
+        return NGX_CONF_ERROR;
+
+    gt = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+    if (!gt)
+        return NGX_CONF_ERROR;
+
+    gt->data = tmp->data + ngx_strlen(GT);
+    gt->len = tmp->len - ngx_strlen(GT);
+
+    rule->gt = gt;
+
+    return NGX_CONF_OK;
+}
+
+/*
+** @description: This function is called to excute gt operator.
+** @para: ngx_str_t *str
+** @para: void *rule
+** @return: RULE_MATCH or RULE_NO_MATCH if failed.
+*/
+
+static ngx_int_t
+yy_sec_waf_execute_gt(ngx_http_request_t *r,
+    ngx_str_t *str, void *rule_p)
+{
+    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
+
+    if (str == NULL || str->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_int_t test, gt;
+
+    test = ngx_atoi(str->data, ngx_strlen(str->data));
+    gt = ngx_atoi(rule->gt->data, rule->gt->len);
+
+    if (test > gt)
+    {
+        return RULE_MATCH;
+    }
+
+    return RULE_NO_MATCH;
+}
 
 static re_op_metadata op_metadata[] = {
     { ngx_string("str"), ngx_http_yy_sec_waf_parse_str, ngx_http_yy_sec_waf_execute_str },
     { ngx_string("regex"), ngx_http_yy_sec_waf_parse_regex, ngx_http_yy_sec_waf_execute_regex },
     { ngx_string("eq"), ngx_http_yy_sec_waf_parse_eq, ngx_http_yy_sec_waf_execute_eq },
+    { ngx_string("gt"), yy_sec_waf_parse_gt, yy_sec_waf_execute_gt },
     { ngx_null_string, NULL, NULL }
 };
 
