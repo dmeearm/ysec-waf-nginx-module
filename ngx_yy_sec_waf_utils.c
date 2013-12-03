@@ -37,6 +37,13 @@ ngx_yy_sec_waf_unescape(ngx_str_t *str) {
     return nullbytes;
 }
 
+/* 
+** @description: This function is called to convert ngx_int_t into u_char.
+** @para: ngx_pool_t *p
+** @para: ngx_int_t n
+** @return: u_char*
+*/
+
 u_char*
 ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n)
 {
@@ -64,6 +71,13 @@ ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n)
 
     return start;
 }
+
+/* 
+** @description: This function is called to convert ngx_uint_t into u_char.
+** @para: ngx_pool_t *p
+** @para: ngx_uint_t n
+** @return: u_char*
+*/
 
 u_char*
 ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n)
