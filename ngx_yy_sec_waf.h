@@ -22,13 +22,6 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 u_char *ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n);
 
-ngx_int_t ngx_http_yy_sec_waf_execute_null(ngx_http_request_t *r,
-    ngx_str_t *str, void *rule);
-
-
-
-extern ngx_module_t  ngx_http_yy_sec_waf_module;
-
 typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */

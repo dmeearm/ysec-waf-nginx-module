@@ -8,7 +8,7 @@
 
 #include "ngx_yy_sec_waf.h"
 
-yy_sec_waf_re_t *rule_engine;
+static yy_sec_waf_re_t *rule_engine;
 
 extern ngx_int_t yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
 
