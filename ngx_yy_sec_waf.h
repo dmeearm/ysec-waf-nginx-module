@@ -23,6 +23,8 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 u_char *ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n);
 u_char *ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n);
 
+extern ngx_module_t ngx_http_yy_sec_waf_module;
+
 typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */
@@ -53,6 +55,7 @@ typedef struct {
     ngx_array_t *request_header_rules;
     ngx_array_t *request_body_rules;
 
+    ngx_shm_zone_t *shm_zone;
     ngx_str_t *denied_url;
     ngx_uint_t http_method;
     ngx_uint_t max_post_args_len;
@@ -85,7 +88,7 @@ typedef struct {
     ngx_int_t  process_body_error;
     ngx_str_t  process_body_error_msg;
     ngx_uint_t post_args_len;
-
+    ngx_uint_t conn;
     ngx_int_t  var_index;
 
     /* blocking flags*/
@@ -103,6 +106,10 @@ typedef struct {
     ngx_str_t    *msg;
     ngx_str_t    *matched_string;
 } ngx_http_request_ctx_t;
+
+extern ngx_int_t ngx_http_yy_sec_waf_process_conn(ngx_http_request_ctx_t *ctx);
+extern ngx_shm_zone_t *ngx_http_yy_sec_waf_create_shm_zone(ngx_conf_t *cf);
+
 
 #endif
 

@@ -4,6 +4,7 @@ HTTP_MODULES="$HTTP_MODULES ngx_http_yy_sec_waf_module"
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_yy_sec_waf_module.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_utils.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_body_processor.c 
+								$ngx_addon_dir/ngx_yy_sec_waf_conn_processor.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_re.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_re_operator.c 
 								$ngx_addon_dir/ngx_yy_sec_waf_re_variable.c 

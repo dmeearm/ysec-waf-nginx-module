@@ -85,7 +85,7 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
- 
+
       ngx_null_command
 };
 
@@ -164,6 +164,8 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->request_body_rules = prev->request_body_rules;
     if (conf->denied_url == NULL)
         conf->denied_url = prev->denied_url;
+    if (conf->shm_zone == NULL)
+        conf->shm_zone = prev->shm_zone;
 
     ngx_conf_merge_value(conf->enabled, prev->enabled, 1);
 
@@ -268,6 +270,13 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
     ngx_http_set_ctx(r, ctx, ngx_http_yy_sec_waf_module);
 
+    rc = ngx_http_yy_sec_waf_process_conn(ctx);
+
+    if (rc != NGX_OK) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_conn failed");
+        return rc;
+    }
+
     /* This section is prepared for further considerations, such as checking the body of this request.*/
     if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) && !ctx->read_body_done) {
         rc = ngx_http_read_client_request_body(r, ngx_http_yy_sec_waf_request_body_handler);
@@ -276,7 +285,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             ctx->waiting_more_body = 1;
             return NGX_DONE;
         } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE || rc == NGX_ERROR) {
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_read_client_request_body failed.");
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_read_client_request_body failed");
             return rc;
         }
     } else {
@@ -289,7 +298,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         cf->request_processed++;
 
         if (rc != NGX_OK) {
-			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed.");
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed");
             return rc;
         }
 
@@ -307,7 +316,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             if (ctx->log && ctx->matched_string) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                     "[ysec_waf] rule matched, id=%d,"
-                    " total processed=%d, total matched=%d, total blocked=%d, total allowed=%d,"
+                    " processed=%d, matched=%d, blocked=%d, allowed=%d,"
                     " error msg=%V,"
                     " %s",
                     ctx->rule_id,

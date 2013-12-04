@@ -343,6 +343,7 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     u_char           *pos;
     ngx_str_t        *value, variable, operator, action;
     ngx_http_yy_sec_waf_rule_t rule, *rule_p;
+    ngx_shm_zone_t *shm_zone;
 
     value = cf->args->elts;
     ngx_memset(&rule, 0, sizeof(ngx_http_yy_sec_waf_rule_t));
@@ -438,6 +439,13 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
     }
 
+    // Create shm zone for conn processor.
+    shm_zone = ngx_http_yy_sec_waf_create_shm_zone(cf);
+
+    if (shm_zone != NULL) {
+        p->shm_zone = shm_zone;
+    }
+
     return NGX_CONF_OK;
 }
 
@@ -473,4 +481,5 @@ ngx_http_yy_sec_waf_re_read_du_loc_conf(ngx_conf_t *cf,
 
     return NGX_CONF_OK;
 }
+
 
