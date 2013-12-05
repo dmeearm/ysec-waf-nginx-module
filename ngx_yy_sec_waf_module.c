@@ -315,11 +315,11 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             
             if (ctx->log && ctx->matched_string) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                    "[ysec_waf] rule matched, id=%d,"
+                    "[ysec_waf] rule matched, id=%d, conn_perip=%ud"
                     " processed=%d, matched=%d, blocked=%d, allowed=%d,"
                     " error msg=%V,"
                     " %s",
-                    ctx->rule_id,
+                    ctx->rule_id, ctx->conn_perip,
                     cf->request_processed, cf->request_matched, cf->request_blocked, cf->request_allowed,
                     ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string,
                     ctx->allow? "allowed": "blocked");

@@ -381,11 +381,8 @@ ngx_http_yy_sec_waf_process_conn(ngx_http_request_ctx_t *ctx)
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ctx->r->connection->log, 0,
                    "[ysec_waf] conn: %08XD %d", node->key, lc->conn);
 
-    ngx_log_error(NGX_LOG_ERR, ctx->r->connection->log, 0,
-                   "[ysec_waf] conn: %08XD %d", node->key, lc->conn);
-
     // GET the connection counter.
-    ctx->conn = lc->conn;
+    ctx->conn_perip = lc->conn;
 
     ngx_shmtx_unlock(&shpool->mutex);
 

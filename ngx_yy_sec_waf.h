@@ -88,7 +88,7 @@ typedef struct {
     ngx_int_t  process_body_error;
     ngx_str_t  process_body_error_msg;
     ngx_uint_t post_args_len;
-    ngx_uint_t conn;
+    ngx_uint_t conn_perip;
     ngx_int_t  var_index;
 
     /* blocking flags*/
