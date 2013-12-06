@@ -350,7 +350,7 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
 
     /* variable */
     if (value[1].data[0] == '$') {
-        ngx_memcpy(variable.data, &value[1].data[1], value[1].len);
+        variable.data = &value[1].data[1];
         variable.len = value[1].len-1;
         rule.var_index = ngx_http_get_variable_index(cf, &variable);
         ngx_str_set(&variable, "$");
