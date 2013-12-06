@@ -125,12 +125,12 @@ ngx_http_yy_sec_waf_execute_regex(ngx_http_request_t *r,
     if (rule->regex != NULL) {
         /* REGEX */
         rc = ngx_http_regex_exec(r, rule->regex, str);
-        
+
         if (rc == NGX_OK) {
             return RULE_MATCH;
+        } else if (rc == NGX_DECLINED) {
+            return RULE_NO_MATCH;
         }
-
-        return rc;
     }
 
     return NGX_ERROR;
