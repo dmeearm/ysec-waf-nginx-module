@@ -294,6 +294,7 @@ ngx_http_yy_sec_waf_create_shm_zone(ngx_conf_t *cf)
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0,
                         "[ysec_waf] shm_zone \"%V\" is already bound to variable \"%Vs\"",
                         &name, &ctx->var);
+        ngx_pfree(cf->cycle->shared_memory.pool, shm_zone);
         return NULL;
     }
 
