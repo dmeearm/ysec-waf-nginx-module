@@ -159,6 +159,38 @@ ngx_http_yy_sec_waf_generate_multipart_filename(void *rule_p,
 }
 
 /*
+** @description: This function is called to generate connection per ip.
+** @para: void *rule_p
+** @para: void *ctx_p
+** @para: ngx_str_t *var
+** @return: static int.
+*/
+
+static int
+yy_sec_waf_generate_conn_per_ip(void *rule_p,
+    void *ctx_p, ngx_array_t *var_array)
+{
+    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
+    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
+
+    ngx_str_t *var;
+
+    if (rule == NULL || ctx == NULL || var_array == NULL) {
+        return NGX_ERROR;
+    }
+
+    var = ngx_array_push(var_array);
+
+    if (var == NULL)
+        return NGX_ERROR;
+
+    var->data = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->conn_per_ip);
+    var->len = ngx_strlen(var->data);
+
+    return NGX_OK;
+}
+
+/*
 ** @description: This function is called to generate inner variable.
 ** @para: void *rule_p
 ** @para: void *ctx_p
@@ -209,6 +241,7 @@ static re_var_metadata var_metadata[] = {
     { ngx_string("PROCESS_BODY_ERROR"), ngx_http_yy_sec_waf_generate_process_body_error },
     { ngx_string("MULTIPART_NAME"), ngx_http_yy_sec_waf_generate_multipart_name},
     { ngx_string("MULTIPART_FILENAME"), ngx_http_yy_sec_waf_generate_multipart_filename},
+    { ngx_string("CONN_PER_IP"), yy_sec_waf_generate_conn_per_ip },
     { ngx_string("$"), ngx_http_yy_sec_waf_generate_inner_var },
     { ngx_null_string, NULL }
 };
