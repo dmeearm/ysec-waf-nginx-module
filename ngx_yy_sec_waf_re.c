@@ -195,102 +195,71 @@ yy_sec_waf_re_op_execute(ngx_http_request_t *r,
 
 static ngx_int_t
 yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase)
 {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Entry");
 
-    ngx_http_yy_sec_waf_rule_t *header_rule, *body_rule;
-    ngx_uint_t i, j;
-    ngx_int_t rc;
-    ngx_str_t *var;
-    ngx_array_t *var_array;
+    ngx_uint_t                  i, j, rule_num;
+    ngx_int_t                   rc;
+    ngx_str_t                  *var;
+    ngx_array_t                *var_array;
+    ngx_http_yy_sec_waf_rule_t *rule;
 
-    if (ctx->cf->request_header_rules != NULL) {
-        header_rule = cf->request_header_rules->elts;
+    rule = NULL;
+    rule_num = 0;
 
-        ctx->phase = REQUEST_HEADER_PHASE;
-        for (i=0; i < cf->request_header_rules->nelts; i++) {
-
-            if (header_rule[i].var_metadata == NULL || header_rule[i].var_metadata->generate == NULL)
-                continue;
-
-            var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
-
-            header_rule[i].var_metadata->generate(&header_rule[i], ctx, var_array);
-
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]1 %d", header_rule[i].rule_id);
-
-            var = var_array->elts;
-            if (var == NULL)
-                continue;
-
-            for (j = 0; j < var_array->nelts; j++) {
-
-                ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]2 %d %V", header_rule[i].rule_id, &var[j]);
-
-                if (header_rule[i].tfn_metadata != NULL) {
-                    rc = header_rule[i].tfn_metadata->execute(&var[j]);
-                    if (rc == NGX_ERROR) {
-                        ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute header_rule tfns");
-                        return NGX_ERROR;
-                    }
-                }
-
-                rc = yy_sec_waf_re_op_execute(r, &var[j], &header_rule[i], ctx);
-
-                if (rc == NGX_ERROR) {
-                    return rc;
-                } else if (rc == RULE_MATCH) {
-                    return NGX_OK;
-                } else if (rc == RULE_NO_MATCH) {
-                    continue;
-                }
-            }
-
-            ngx_array_destroy(var_array);
+    if (phase == REQUEST_HEADER_PHASE) {
+        if (ctx->cf->request_header_rules == NULL) {
+            return NGX_ERROR;
         }
+
+        rule = cf->request_header_rules->elts;
+        rule_num = cf->request_header_rules->nelts;
+    } else if (phase == REQUEST_BODY_PHASE) {
+        if (ctx->cf->request_body_rules == NULL) {
+            return NGX_ERROR;
+        }
+
+        rule = cf->request_body_rules->elts;
+        rule_num = cf->request_body_rules->nelts;
     }
 
-    if (cf->request_body_rules && r->request_body 
-        && (r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)) {
-        body_rule = cf->request_body_rules->elts;
+    ctx->phase = phase;
 
+    for (i=0; i < rule_num; i++) {
 
-        ctx->phase = REQUEST_BODY_PHASE;
-        for (i=0; i < cf->request_body_rules->nelts; i++) {
-            var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+        if (rule[i].var_metadata == NULL || rule[i].var_metadata->generate == NULL)
+            continue;
 
-            body_rule[i].var_metadata->generate(&body_rule[i], ctx, var_array);
+        var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
 
-            var = var_array->elts;
-            if (var == NULL || var->data == NULL)
-                continue;
+        rule[i].var_metadata->generate(&rule[i], ctx, var_array);
 
-            for (j = 0; j < var_array->nelts; j++) {
+        var = var_array->elts;
+        if (var == NULL)
+            continue;
 
-                ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf]3 %d %V %p", body_rule[i].rule_id, &var[j], var[j].data);
-
-                if (body_rule[i].tfn_metadata != NULL) {
-                    rc = body_rule[i].tfn_metadata->execute(&var[j]);
-                    if (rc == NGX_ERROR) {
-                        ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute body_rule tfns");
-                        return NGX_ERROR;
-                    }
-                }
-
-                rc = yy_sec_waf_re_op_execute(r, &var[j], &body_rule[i], ctx);
-
+        for (j = 0; j < var_array->nelts; j++) {
+            if (rule[i].tfn_metadata != NULL) {
+                rc = rule[i].tfn_metadata->execute(&var[j]);
                 if (rc == NGX_ERROR) {
-                    return rc;
-                } else if (rc == RULE_MATCH) {
-                    return NGX_OK;
-                } else if (rc == RULE_NO_MATCH) {
-                    continue;
+                    ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
+                    return NGX_ERROR;
                 }
             }
 
-            ngx_array_destroy(var_array);
+            rc = yy_sec_waf_re_op_execute(r, &var[j], &rule[i], ctx);
+
+            if (rc == NGX_ERROR) {
+                return rc;
+            } else if (rc == RULE_MATCH) {
+                return NGX_OK;
+            } else if (rc == RULE_NO_MATCH) {
+                continue;
+            }
         }
+
+        ngx_array_destroy(var_array);
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Exit");
@@ -312,14 +281,26 @@ ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
 {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Entry");
 
-    /* TODO: process body, need test case for this situation. */
+    ngx_int_t rc;
+
+    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
+    if (rc == RULE_MATCH) {
+        return NGX_OK;
+    } else if (rc == NGX_ERROR) {
+        return NGX_ERROR;
+    }
+
     if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
         && r->request_body) {
         ngx_http_yy_sec_waf_process_body(r, cf, ctx);
+
+        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
+        if (rc == RULE_MATCH) {
+            return NGX_OK;
+        } else if (rc == NGX_ERROR) {
+            return NGX_ERROR;
+        }
     }
-
-    yy_sec_waf_re_process_normal_rules(r, cf, ctx);
-
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Exit");
 
     return NGX_OK;
