@@ -411,6 +411,12 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     return ctx;
 }
 
+/*
+** @description: This function is called to init yy_sec_waf_module.
+** @para: ngx_cycle_t *cycle
+** @return: static ngx_int_t
+*/
+
 static ngx_int_t
 ngx_http_yy_sec_waf_module_init(ngx_cycle_t *cycle)
 {
