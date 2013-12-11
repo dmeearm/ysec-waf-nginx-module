@@ -11,9 +11,6 @@
 static ngx_int_t ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf);
 static ngx_int_t ngx_http_yy_sec_waf_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_yy_sec_waf_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
-    ngx_http_request_ctx_t *ctx);
-
 static void ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r);
 static void * ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf);
 static char * ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf,
@@ -30,6 +27,8 @@ extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
 
 extern ngx_int_t ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf);
+extern ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase);
 
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
@@ -277,6 +276,11 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         return rc;
     }
 
+    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
+    if (ctx->matched || rc == NGX_ERROR) {
+        return rc;
+    }
+
     /* This section is prepared for further considerations, such as checking the body of this request.*/
     if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) && !ctx->read_body_done) {
         rc = ngx_http_read_client_request_body(r, ngx_http_yy_sec_waf_request_body_handler);
@@ -297,115 +301,19 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
         cf->request_processed++;
 
-        if (rc != NGX_OK) {
+        if (rc == NGX_ERROR) {
 			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed");
-            return rc;
+            return NGX_ERROR;
         }
 
         ctx->process_done = 1;
 
-        if (ctx->matched) {
-            cf->request_matched++;
-
-			if (ctx->allow)
-                cf->request_allowed++;
-
-            if (ctx->block)
-                cf->request_blocked++;
-            
-            if (ctx->log && ctx->matched_string) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                    "[ysec_waf] rule matched, id=%d, conn_per_ip=%ud"
-                    " processed=%d, matched=%d, blocked=%d, allowed=%d,"
-                    " error msg=%V,"
-                    " %s",
-                    ctx->rule_id, ctx->conn_per_ip,
-                    cf->request_processed, cf->request_matched, cf->request_blocked, cf->request_allowed,
-                    ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string,
-                    ctx->allow? "allowed": "blocked");
-            }
-
-            if (ctx->allow)
-                return NGX_DECLINED;
-
-            return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
-        }
-
-        return NGX_DECLINED;
+        return rc;
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_handler Exit");
 
     return NGX_DECLINED;
-}
-
-/*
-** @description: This function is called to redirect request url to the denied url of yy sec waf.
-** @para: ngx_http_request_t *r
-** @para: ngx_http_request_ctx_t *ctx
-** @return: NGX_HTTP_OK or NGX_ERROR if failed.
-*/
-
-static ngx_int_t
-ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
-    ngx_http_request_ctx_t *ctx)
-{
-    ngx_http_yy_sec_waf_loc_conf_t *cf;
-    ngx_str_t  empty = ngx_string("");
-    ngx_str_t *tmp_uri;
-
-    cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
-
-    if (cf->denied_url) {
-        tmp_uri = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
-        if (!tmp_uri)
-            return NGX_ERROR;
-        
-        tmp_uri->len = r->uri.len + (2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len,
-            NGX_ESCAPE_ARGS));
-        tmp_uri->data = ngx_pcalloc(r->pool, tmp_uri->len+1);
-    
-        ngx_escape_uri(tmp_uri->data, r->uri.data, r->uri.len, NGX_ESCAPE_ARGS);
-        
-        ngx_table_elt_t *h;
-        
-        if (r->headers_in.headers.last)	{
-            h = ngx_list_push(&(r->headers_in.headers));
-            h->key.len = ngx_strlen("orig_url");
-            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_url")+1);
-            ngx_memcpy(h->key.data, "orig_url", ngx_strlen("orig_url"));
-            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_url") + 1);
-            ngx_memcpy(h->lowcase_key, "orig_url", ngx_strlen("orig_url"));
-            h->value.len = tmp_uri->len;
-            h->value.data = ngx_pcalloc(r->pool, tmp_uri->len+1);
-            ngx_memcpy(h->value.data, tmp_uri->data, tmp_uri->len);
-            
-            h = ngx_list_push(&(r->headers_in.headers));
-            h->key.len = ngx_strlen("orig_args");
-            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_args")+1);
-            ngx_memcpy(h->key.data, "orig_args", ngx_strlen("orig_args"));
-            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_args") + 1);
-            ngx_memcpy(h->lowcase_key, "orig_args", ngx_strlen("orig_args"));
-            h->value.len = r->args.len;
-            h->value.data = ngx_pcalloc(r->pool, r->args.len+1);
-            ngx_memcpy(h->value.data, r->args.data, r->args.len);
-            
-            h = ngx_list_push(&(r->headers_in.headers));
-            h->key.len = ngx_strlen("yy_sec_waf");
-            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf")+1);
-            ngx_memcpy(h->key.data, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
-            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf") + 1);
-            ngx_memcpy(h->lowcase_key, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
-            h->value.len = empty.len;
-            h->value.data = empty.data;
-        }
-
-        ngx_http_internal_redirect(r, cf->denied_url, &empty);
-
-        return NGX_HTTP_OK;
-    } else {
-        return NGX_HTTP_PRECONDITION_FAILED;
-    }
 }
 
 /*

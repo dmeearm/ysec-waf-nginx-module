@@ -128,6 +128,75 @@ yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator)
 }
 
 /*
+** @description: This function is called to redirect request url to the denied url of yy sec waf.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_request_ctx_t *ctx
+** @return: NGX_HTTP_OK or NGX_ERROR if failed.
+*/
+
+static ngx_int_t
+ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
+    ngx_http_request_ctx_t *ctx)
+{
+    ngx_http_yy_sec_waf_loc_conf_t *cf;
+    ngx_str_t  empty = ngx_string("");
+    ngx_str_t *tmp_uri;
+
+    cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
+
+    if (cf->denied_url) {
+        tmp_uri = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
+        if (!tmp_uri)
+            return NGX_ERROR;
+        
+        tmp_uri->len = r->uri.len + (2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len,
+            NGX_ESCAPE_ARGS));
+        tmp_uri->data = ngx_pcalloc(r->pool, tmp_uri->len+1);
+    
+        ngx_escape_uri(tmp_uri->data, r->uri.data, r->uri.len, NGX_ESCAPE_ARGS);
+        
+        ngx_table_elt_t *h;
+        
+        if (r->headers_in.headers.last)	{
+            h = ngx_list_push(&(r->headers_in.headers));
+            h->key.len = ngx_strlen("orig_url");
+            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_url")+1);
+            ngx_memcpy(h->key.data, "orig_url", ngx_strlen("orig_url"));
+            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_url") + 1);
+            ngx_memcpy(h->lowcase_key, "orig_url", ngx_strlen("orig_url"));
+            h->value.len = tmp_uri->len;
+            h->value.data = ngx_pcalloc(r->pool, tmp_uri->len+1);
+            ngx_memcpy(h->value.data, tmp_uri->data, tmp_uri->len);
+            
+            h = ngx_list_push(&(r->headers_in.headers));
+            h->key.len = ngx_strlen("orig_args");
+            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("orig_args")+1);
+            ngx_memcpy(h->key.data, "orig_args", ngx_strlen("orig_args"));
+            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("orig_args") + 1);
+            ngx_memcpy(h->lowcase_key, "orig_args", ngx_strlen("orig_args"));
+            h->value.len = r->args.len;
+            h->value.data = ngx_pcalloc(r->pool, r->args.len+1);
+            ngx_memcpy(h->value.data, r->args.data, r->args.len);
+            
+            h = ngx_list_push(&(r->headers_in.headers));
+            h->key.len = ngx_strlen("yy_sec_waf");
+            h->key.data = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf")+1);
+            ngx_memcpy(h->key.data, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
+            h->lowcase_key = ngx_pcalloc(r->pool, ngx_strlen("yy_sec_waf") + 1);
+            ngx_memcpy(h->lowcase_key, "yy_sec_waf", ngx_strlen("yy_sec_waf"));
+            h->value.len = empty.len;
+            h->value.data = empty.data;
+        }
+
+        ngx_http_internal_redirect(r, cf->denied_url, &empty);
+
+        return NGX_HTTP_OK;
+    } else {
+        return NGX_HTTP_PRECONDITION_FAILED;
+    }
+}
+
+/*
 ** @description: This function is called to resolve actions in hash.
 ** @para: ngx_str_t *action
 ** @return: static re_action_metadata *
@@ -253,7 +322,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
             if (rc == NGX_ERROR) {
                 return rc;
             } else if (rc == RULE_MATCH) {
-                return NGX_OK;
+                goto MATCH;
             } else if (rc == RULE_NO_MATCH) {
                 continue;
             }
@@ -265,6 +334,31 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Exit");
 
     return NGX_OK;
+
+MATCH:
+    cf->request_matched++;
+
+    if (ctx->allow)
+        cf->request_allowed++;
+    
+    if (ctx->block)
+        cf->request_blocked++;
+
+    if (ctx->log && ctx->matched_string) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+            "[ysec_waf] %s, id:%d, conn_per_ip:%ud,"
+            " processed:%d, matched:%d, blocked:%d, allowed:%d,"
+            " msg:%V, info:%V",
+            ctx->block? "block": "alert",
+            ctx->rule_id, ctx->conn_per_ip,
+            cf->request_processed, cf->request_matched, cf->request_blocked, cf->request_allowed,
+            ctx->msg, ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string);
+    }
+
+    if (ctx->allow)
+        return NGX_DECLINED;
+
+    return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
 }
 
 /*
@@ -279,31 +373,19 @@ ngx_int_t
 ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Entry");
-
     ngx_int_t rc;
-
-    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
-    if (rc == RULE_MATCH) {
-        return NGX_OK;
-    } else if (rc == NGX_ERROR) {
-        return NGX_ERROR;
-    }
 
     if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
         && r->request_body) {
         ngx_http_yy_sec_waf_process_body(r, cf, ctx);
 
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
-        if (rc == RULE_MATCH) {
-            return NGX_OK;
-        } else if (rc == NGX_ERROR) {
-            return NGX_ERROR;
+        if (ctx->matched || rc == NGX_ERROR) {
+            return rc;
         }
     }
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_request Exit");
 
-    return NGX_OK;
+    return NGX_DECLINED;
 }
 
 /*
