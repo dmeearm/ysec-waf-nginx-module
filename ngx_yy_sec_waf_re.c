@@ -193,7 +193,7 @@ yy_sec_waf_re_op_execute(ngx_http_request_t *r,
 ** @return: RULE_MATCH or RULE_NO_MATCH if failed.
 */
 
-static ngx_int_t
+ngx_int_t
 yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase)
 {
@@ -364,7 +364,10 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         return NGX_CONF_ERROR;
     }
 
-    operator.len = value[2].len-1;
+    operator.len = value[2].len;
+    if (operator.data[0] == '!') {
+        operator.len--;
+    }
 
     if (rule.op_metadata->parse(cf, &operator, &rule) != NGX_CONF_OK) {
         ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%V'", &operator);

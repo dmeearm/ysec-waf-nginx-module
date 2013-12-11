@@ -243,7 +243,7 @@ yy_sec_waf_execute_gt(ngx_http_request_t *r,
 
     ngx_int_t test, gt;
 
-    test = ngx_atoi(str->data, ngx_strlen(str->data));
+    test = ngx_atoi(str->data, str->len);
     gt = ngx_atoi(rule->gt->data, rule->gt->len);
 
     if (test > gt)
