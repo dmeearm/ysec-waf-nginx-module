@@ -441,7 +441,7 @@ ngx_http_yy_sec_waf_module_init(ngx_cycle_t *cycle)
     request_matched = (ngx_atomic_t *) (shared + 0 * cl);
     request_blocked = (ngx_atomic_t *) (shared + 1 * cl);
     request_allowed = (ngx_atomic_t *) (shared + 2 * cl);
-    request_logged  = (ngx_atomic_t *) (shared + 2 * cl);
+    request_logged  = (ngx_atomic_t *) (shared + 3 * cl);
 
     return NGX_OK;
 }
