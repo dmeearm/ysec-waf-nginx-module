@@ -31,10 +31,15 @@ extern ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase);
 static ngx_int_t ngx_http_yy_sec_waf_module_init(ngx_cycle_t *cycle);
 
-ngx_atomic_t   *request_matched;
-ngx_atomic_t   *request_blocked;
-ngx_atomic_t   *request_allowed;
-ngx_atomic_t   *request_logged;
+ngx_atomic_t   request_matched0;
+ngx_atomic_t   request_blocked0;
+ngx_atomic_t   request_allowed0;
+ngx_atomic_t   request_logged0;
+
+ngx_atomic_t   *request_matched = &request_matched0;
+ngx_atomic_t   *request_blocked = &request_blocked0;
+ngx_atomic_t   *request_allowed = &request_allowed0;
+ngx_atomic_t   *request_logged  = &request_logged0;
 
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
@@ -423,6 +428,13 @@ ngx_http_yy_sec_waf_module_init(ngx_cycle_t *cycle)
     u_char              *shared;
     size_t               size, cl;
     ngx_shm_t            shm;
+    ngx_core_conf_t     *ccf;
+
+    ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
+
+    if (ccf->master == 0) {
+        return NGX_OK;
+    }
 
     /* cl should be equal to or greater than cache line size */
 
