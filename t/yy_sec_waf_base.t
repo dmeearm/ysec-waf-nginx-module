@@ -95,4 +95,4 @@ Content-Type: application/x-www-form-urlencoded
 use URI::Escape;
 "POST /
 foo1=ba%%2f%3c%3D%3%D%33%DD%FF%2F%3cr1&foo2=bar2"
---- error_code: 200
+--- error_code: 412
