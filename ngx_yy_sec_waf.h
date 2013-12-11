@@ -25,6 +25,11 @@ u_char *ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n);
 
 extern ngx_module_t ngx_http_yy_sec_waf_module;
 
+extern ngx_atomic_t	  *request_matched;
+extern ngx_atomic_t	  *request_blocked;
+extern ngx_atomic_t	  *request_allowed;
+extern ngx_atomic_t	  *request_logged;
+
 typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *str; /* STR */
     ngx_http_regex_t *regex; /* REG */
@@ -60,12 +65,6 @@ typedef struct {
     ngx_uint_t http_method;
     ngx_uint_t max_post_args_len;
     ngx_flag_t enabled;
-
-    /* count */
-    ngx_uint_t    request_processed;
-    ngx_uint_t    request_matched;
-    ngx_uint_t    request_blocked;
-    ngx_uint_t    request_allowed;
 } ngx_http_yy_sec_waf_loc_conf_t;
 
 typedef struct {

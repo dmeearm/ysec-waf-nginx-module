@@ -29,6 +29,12 @@ extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
 extern ngx_int_t ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf);
 extern ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase);
+static ngx_int_t ngx_http_yy_sec_waf_module_init(ngx_cycle_t *cycle);
+
+ngx_atomic_t   *request_matched;
+ngx_atomic_t   *request_blocked;
+ngx_atomic_t   *request_allowed;
+ngx_atomic_t   *request_logged;
 
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
@@ -109,7 +115,7 @@ ngx_module_t  ngx_http_yy_sec_waf_module = {
     ngx_http_yy_sec_waf_commands,          /* module directives */
     NGX_HTTP_MODULE,                       /* module type */
     NULL,                                  /* init master */
-    NULL,                                  /* init module */
+    ngx_http_yy_sec_waf_module_init,       /* init module */
     NULL,                                  /* init process */
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
@@ -391,5 +397,40 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ctx->pool = r->pool;
 
     return ctx;
+}
+
+static ngx_int_t
+ngx_http_yy_sec_waf_module_init(ngx_cycle_t *cycle)
+{
+    u_char              *shared;
+    size_t               size, cl;
+    ngx_shm_t            shm;
+
+    /* cl should be equal to or greater than cache line size */
+
+    cl = 128;
+
+    size = cl            /* request_matched */
+           + cl          /* request_blocked */
+           + cl          /* request_allowed */
+           + cl;         /* request_logged */
+
+    shm.size = size;
+    shm.name.len = sizeof("yy_sec_waf_shared_zone");
+    shm.name.data = (u_char *) "yy_sec_waf_shared_zone";
+    shm.log = cycle->log;
+
+    if (ngx_shm_alloc(&shm) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    shared = shm.addr;
+
+    request_matched = (ngx_atomic_t *) (shared + 0 * cl);
+    request_blocked = (ngx_atomic_t *) (shared + 1 * cl);
+    request_allowed = (ngx_atomic_t *) (shared + 2 * cl);
+    request_logged  = (ngx_atomic_t *) (shared + 2 * cl);
+
+    return NGX_OK;
 }
 
