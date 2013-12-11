@@ -63,6 +63,13 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
       offsetof(ngx_http_yy_sec_waf_loc_conf_t, enabled),
       NULL },
 
+    { ngx_string("conn_processor"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_yy_sec_waf_loc_conf_t, conn_processor),
+      NULL },
+
     { ngx_string("max_post_args_len"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
@@ -144,6 +151,7 @@ ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf)
 
     conf->enabled = NGX_CONF_UNSET;
     conf->max_post_args_len = NGX_CONF_UNSET_UINT;
+    conf->conn_processor = NGX_CONF_UNSET;
 
     return conf;
 }
@@ -173,6 +181,8 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->shm_zone = prev->shm_zone;
 
     ngx_conf_merge_value(conf->enabled, prev->enabled, 1);
+
+    ngx_conf_merge_value(conf->conn_processor, prev->conn_processor, 1);
 
     ngx_conf_merge_bitmask_value(conf->http_method, prev->http_method, 0);
 
@@ -275,11 +285,13 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
     ngx_http_set_ctx(r, ctx, ngx_http_yy_sec_waf_module);
 
-    rc = ngx_http_yy_sec_waf_process_conn(ctx);
-
-    if (rc != NGX_OK) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_conn failed");
-        return rc;
+    if (cf->conn_processor) {
+        rc = ngx_http_yy_sec_waf_process_conn(ctx);
+    
+        if (rc != NGX_OK) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_conn failed");
+            return rc;
+        }
     }
 
     rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
