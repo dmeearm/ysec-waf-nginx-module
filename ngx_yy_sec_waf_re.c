@@ -338,6 +338,8 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 MATCH:
     cf->request_matched++;
 
+    ctx->process_done = 1;
+
     if (ctx->allow)
         cf->request_allowed++;
     
@@ -347,11 +349,11 @@ MATCH:
     if (ctx->log && ctx->matched_string) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
             "[ysec_waf] %s, id:%d, conn_per_ip:%ud,"
-            " processed:%d, matched:%d, blocked:%d, allowed:%d,"
+            " matched:%d, blocked:%d, allowed:%d,"
             " msg:%V, info:%V",
-            ctx->block? "block": "alert",
+            ctx->block? "block": ctx->allow? "allow": "alert",
             ctx->rule_id, ctx->conn_per_ip,
-            cf->request_processed, cf->request_matched, cf->request_blocked, cf->request_allowed,
+            cf->request_matched, cf->request_blocked, cf->request_allowed,
             ctx->msg, ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string);
     }
 

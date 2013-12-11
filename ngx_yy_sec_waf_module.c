@@ -299,8 +299,6 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     if (ctx && ctx->read_body_done && !ctx->process_done) {
         rc = ngx_http_yy_sec_waf_process_request(r, cf, ctx);
 
-        cf->request_processed++;
-
         if (rc == NGX_ERROR) {
 			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed");
             return NGX_ERROR;
