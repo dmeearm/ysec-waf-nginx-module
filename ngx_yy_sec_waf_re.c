@@ -514,9 +514,8 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
 
     // Create shm zone for conn processor.
     if (p->conn_processor) {
-         ngx_conf_log_error(NGX_ERROR, cf, 0, "test");
         shm_zone = ngx_http_yy_sec_waf_create_shm_zone(cf);
-    
+
         if (shm_zone != NULL) {
             p->shm_zone = shm_zone;
         }
