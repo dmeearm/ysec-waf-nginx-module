@@ -31,10 +31,10 @@ extern ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase);
 static ngx_int_t ngx_http_yy_sec_waf_module_init(ngx_cycle_t *cycle);
 
-ngx_atomic_t   request_matched0;
-ngx_atomic_t   request_blocked0;
-ngx_atomic_t   request_allowed0;
-ngx_atomic_t   request_logged0;
+static ngx_atomic_t   request_matched0;
+static ngx_atomic_t   request_blocked0;
+static ngx_atomic_t   request_allowed0;
+static ngx_atomic_t   request_logged0;
 
 ngx_atomic_t   *request_matched = &request_matched0;
 ngx_atomic_t   *request_blocked = &request_blocked0;
