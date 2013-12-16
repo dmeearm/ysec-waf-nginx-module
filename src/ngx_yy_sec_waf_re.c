@@ -306,7 +306,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Exit");
 
-    return NGX_OK;
+    return NGX_DECLINED;
 
 MATCH:
     ngx_atomic_fetch_add(request_matched, 1);
