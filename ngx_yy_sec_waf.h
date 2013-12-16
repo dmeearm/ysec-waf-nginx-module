@@ -74,6 +74,9 @@ typedef struct {
     ngx_http_yy_sec_waf_loc_conf_t *cf;
     ngx_int_t  phase;
 
+    ngx_rbtree_t cache_rbtree;
+    ngx_rbtree_node_t cache_sentinel;
+
     ngx_str_t *args;
 
     ngx_str_t *post_args;

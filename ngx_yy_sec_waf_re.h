@@ -92,6 +92,14 @@ re_tfns_metadata *yy_sec_waf_re_resolve_tfn_in_hash(ngx_str_t *tfn);
 
 re_var_metadata *yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable);
 
+ngx_inline void yy_sec_waf_re_cache_init_rbtree(ngx_rbtree_t *rbtree,
+    ngx_rbtree_node_t *sentinel);
+
+ngx_int_t yy_sec_waf_re_cache_set_value(ngx_pool_t *pool,
+    ngx_str_t *name, ngx_array_t *value, ngx_rbtree_t *rbtree);
+
+ngx_inline ngx_str_t *yy_sec_waf_re_cache_get_value(ngx_rbtree_t *rbtree,
+    ngx_str_t *name);
 
 #endif
 

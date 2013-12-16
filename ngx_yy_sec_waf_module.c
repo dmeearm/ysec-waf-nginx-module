@@ -404,14 +404,25 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ctx->post_args = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
 
     ctx->multipart_filename = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+    if (ctx->multipart_filename == NULL) {
+        return NULL;
+    }
     ctx->multipart_name = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+    if (ctx->multipart_name == NULL) {
+        return NULL;
+    }
     ctx->content_type = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
-
+    if (ctx->content_type == NULL) {
+        return NULL;
+    }
+    
     ctx->process_body_error = 0;
 
     ctx->r = r;
     ctx->cf = cf;
     ctx->pool = r->pool;
+
+    //yy_sec_waf_re_cache_init_rbtree(&ctx->cache_rbtree, &ctx->cache_sentinel);
 
     return ctx;
 }
