@@ -41,6 +41,9 @@ ngx_atomic_t   *request_blocked = &request_blocked0;
 ngx_atomic_t   *request_allowed = &request_allowed0;
 ngx_atomic_t   *request_logged  = &request_logged0;
 
+static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
+static ngx_http_output_body_filter_pt    ngx_http_next_body_filter;
+
 static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
     { ngx_string("GET"), NGX_HTTP_GET },
     { ngx_string("HEAD"), NGX_HTTP_HEAD },
@@ -209,6 +212,52 @@ ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf)
 }
 
 /*
+** @description: This function is called to filter header.
+** @para: ngx_conf_t *cf
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static ngx_int_t
+ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
+{
+    ngx_http_request_ctx_t         *ctx;
+    ngx_http_yy_sec_waf_loc_conf_t *cf;
+
+    cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (cf == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
+        return NGX_ERROR;
+    }
+
+    return yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_HEADER_PHASE);
+}
+
+/*
+** @description: This function is called to filter body.
+** @para: ngx_conf_t *cf
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static ngx_int_t
+ngx_http_yy_sec_waf_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
+{
+    ngx_http_request_ctx_t         *ctx;
+    ngx_http_yy_sec_waf_loc_conf_t *cf;
+
+    cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (cf == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
+        return NGX_ERROR;
+    }
+
+    return yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_BODY_PHASE);
+}
+
+/*
 ** @description: This function is called to init yy sec waf in process of postconfiguration.
 ** @para: ngx_conf_t *cf
 ** @return: NGX_CONF_OK or NGX_ERROR if failed.
@@ -229,6 +278,12 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
     }
 
     *h = ngx_http_yy_sec_waf_handler;
+
+    ngx_http_next_header_filter = ngx_http_top_header_filter;
+    ngx_http_top_header_filter = ngx_http_yy_sec_waf_header_filter;
+
+    ngx_http_next_body_filter = ngx_http_top_body_filter;
+    ngx_http_top_body_filter = ngx_http_yy_sec_waf_body_filter;
 
     return NGX_OK;
 }

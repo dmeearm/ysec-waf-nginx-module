@@ -59,6 +59,8 @@ typedef struct {
     /* ngx_http_yy_sec_waf_rule_t */
     ngx_array_t *request_header_rules;
     ngx_array_t *request_body_rules;
+    ngx_array_t *response_header_rules;
+    ngx_array_t *response_body_rules;
 
     ngx_shm_zone_t *shm_zone;
     ngx_str_t *denied_url;

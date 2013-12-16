@@ -1,6 +1,6 @@
 /*
 ** @file: ngx_yy_sec_waf_re_action.c
-** @description: This is the rule rule engine's actions for yy sec waf.
+** @description: This is the rule engine's actions for yy sec waf.
 ** @author: dw_liqi1<liqi1@yy.com>
 ** @date: 2013.11.13
 ** Copyright (C) YY, Inc.
@@ -175,6 +175,12 @@ yy_sec_waf_parse_phase(ngx_conf_t *cf,
             continue;
         } else if (tmp_ptr[0] == '2') {
             rule->phase |= REQUEST_BODY_PHASE;
+            tmp_ptr += 1;
+        } else if (tmp_ptr[0] == '3') {
+            rule->phase |= RESPONSE_HEADER_PHASE;
+            tmp_ptr += 1;
+        } else if (tmp_ptr[0] == '4') {
+            rule->phase |= RESPONSE_BODY_PHASE;
             tmp_ptr += 1;
         } else {
             return NGX_CONF_ERROR;
