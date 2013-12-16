@@ -17,7 +17,7 @@ Features
 
 2. Effecient Regex Engine:
 
-	I choose PCRE as regex engine for YY SEC WAF.
+	I am please to choose PCRE as regex engine for YY SEC WAF.
 
 3. Real-Time Monitoring and Attack Detection:
 
@@ -27,14 +27,14 @@ Features
 
 4. Network-Based Deployment:
 
-	ModSecurity works equally well when deployed as part of a reverse proxy server,
+	YY SEC WAF works equally well when deployed as part of a reverse proxy server,
 	and many of our customers choose to do so. In this scenario, one installation 
-	of ModSecurity can protect any number or type of back-end web servers.
+	of YY SEC WAF can protect any number or type of back-end web servers.
 
 5. Embedded Deployment:
 
-	ModSecurity is an embeddable web application firewall, which means it can be deployed
-	as part of your existing web server infrastructure (Nginx).
+	YY SEC WAF is an embeddable web application firewall, which means it can be 
+	deployed as part of your existing web server infrastructure (Nginx).
 
 Install
 =======
