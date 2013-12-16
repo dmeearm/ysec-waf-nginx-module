@@ -17,7 +17,7 @@
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_gids(ngx_conf_t *cf,
+yy_sec_waf_parse_gids(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
     ngx_str_t *gids;
@@ -48,7 +48,7 @@ ngx_http_yy_sec_waf_parse_gids(ngx_conf_t *cf,
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
+yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
     ngx_str_t *rule_id;
@@ -79,7 +79,7 @@ ngx_http_yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_msg(ngx_conf_t *cf,
+yy_sec_waf_parse_msg(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
     ngx_str_t *msg;
@@ -110,7 +110,7 @@ ngx_http_yy_sec_waf_parse_msg(ngx_conf_t *cf,
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
+yy_sec_waf_parse_level(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
     u_char *tmp_ptr;
@@ -152,7 +152,7 @@ ngx_http_yy_sec_waf_parse_level(ngx_conf_t *cf,
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_phase(ngx_conf_t *cf,
+yy_sec_waf_parse_phase(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
 
@@ -217,11 +217,11 @@ yy_sec_waf_parse_tfn(ngx_conf_t *cf,
 }
 
 static re_action_metadata action_metadata[] = {
-    { ngx_string("gids"), ngx_http_yy_sec_waf_parse_gids},
-    { ngx_string("id"), ngx_http_yy_sec_waf_parse_rule_id},
-    { ngx_string("msg"), ngx_http_yy_sec_waf_parse_msg},
-    { ngx_string("lev"), ngx_http_yy_sec_waf_parse_level},
-    { ngx_string("phase"), ngx_http_yy_sec_waf_parse_phase},
+    { ngx_string("gids"), yy_sec_waf_parse_gids},
+    { ngx_string("id"), yy_sec_waf_parse_rule_id},
+    { ngx_string("msg"), yy_sec_waf_parse_msg},
+    { ngx_string("lev"), yy_sec_waf_parse_level},
+    { ngx_string("phase"), yy_sec_waf_parse_phase},
     { ngx_string("t"), yy_sec_waf_parse_tfn},
     { ngx_null_string, NULL}
 };
@@ -234,7 +234,7 @@ static re_action_metadata action_metadata[] = {
 */
 
 ngx_int_t
-yy_sec_waf_init_actions_in_hash(ngx_conf_t *cf,
+ngx_http_yy_sec_waf_init_actions_in_hash(ngx_conf_t *cf,
     ngx_hash_t *actions_in_hash)
 {
     ngx_array_t         actions;

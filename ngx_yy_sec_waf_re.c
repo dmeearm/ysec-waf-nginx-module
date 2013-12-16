@@ -10,53 +10,13 @@
 
 static yy_sec_waf_re_t *rule_engine;
 
-extern ngx_int_t yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
-
-extern ngx_int_t yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
-
-extern ngx_int_t yy_sec_waf_init_actions_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
-
-extern ngx_int_t yy_sec_waf_init_tfns_in_hash(ngx_conf_t *cf, ngx_hash_t *hash);
-
-extern ngx_int_t ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
-
-/*
-** @description: This function is called to create rule engine for yy sec waf.
-** @para: ngx_conf_t *cf
-** @return: NGX_OK or NGX_ERROR if failed.
-*/
-
-ngx_int_t
-ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf)
-{
-    rule_engine = ngx_pcalloc(cf->pool, sizeof(yy_sec_waf_re_t));
-    if (rule_engine == NULL) {
-        return NGX_ERROR;
-    }
-
-    if (yy_sec_waf_init_variables_in_hash(cf, &rule_engine->variables_in_hash) == NGX_ERROR)
-        return NGX_ERROR;
-
-    if (yy_sec_waf_init_operators_in_hash(cf, &rule_engine->operators_in_hash) == NGX_ERROR)
-        return NGX_ERROR;
-
-    if (yy_sec_waf_init_actions_in_hash(cf, &rule_engine->actions_in_hash) == NGX_ERROR)
-        return NGX_ERROR;
-
-    if (yy_sec_waf_init_tfns_in_hash(cf, &rule_engine->tfns_in_hash) == NGX_ERROR)
-        return NGX_ERROR;
-
-    return NGX_OK;
-}
-
 /*
 ** @description: This function is called to resolve variables in hash.
 ** @para: ngx_str_t *variable
 ** @return: static re_var_metadata *
 */
 
-re_var_metadata *
+static re_var_metadata *
 yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable)
 {
     ngx_uint_t key;
@@ -108,7 +68,7 @@ yy_sec_waf_re_resolve_tfn_in_hash(ngx_str_t *tfn)
 ** @return: static re_op_metadata *
 */
 
-re_op_metadata *
+static re_op_metadata *
 yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator)
 {
     ngx_uint_t key;
@@ -135,7 +95,7 @@ yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator)
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
+yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
     ngx_http_request_ctx_t *ctx)
 {
     ngx_http_yy_sec_waf_loc_conf_t *cf;
@@ -268,11 +228,11 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Entry");
 
-    ngx_uint_t                  i, j, rule_num;
+    ngx_uint_t                  i, rule_num;
     ngx_int_t                   rc;
-    ngx_str_t                  *var;
-    ngx_array_t                *var_array;
+    ngx_str_t                   var;
     ngx_http_yy_sec_waf_rule_t *rule;
+    ngx_http_variable_value_t  *vv;
 
     rule = NULL;
     rule_num = 0;
@@ -300,35 +260,34 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         if (rule[i].var_metadata == NULL || rule[i].var_metadata->generate == NULL)
             continue;
 
-        var_array = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
+        vv = ngx_palloc(r->pool, sizeof(ngx_http_variable_value_t));
 
-        rule[i].var_metadata->generate(&rule[i], ctx, var_array);
+        rc = rule[i].var_metadata->generate(&rule[i], ctx, vv);
 
-        var = var_array->elts;
-        if (var == NULL)
+        if (rc == NGX_ERROR || vv->not_found) {
             continue;
+        }
 
-        for (j = 0; j < var_array->nelts; j++) {
-            if (rule[i].tfn_metadata != NULL) {
-                rc = rule[i].tfn_metadata->execute(&var[j]);
-                if (rc == NGX_ERROR) {
-                    ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
-                    return NGX_ERROR;
-                }
-            }
-
-            rc = yy_sec_waf_re_op_execute(r, &var[j], &rule[i], ctx);
-
+        if (rule[i].tfn_metadata != NULL) {
+            rc = rule[i].tfn_metadata->execute(vv);
             if (rc == NGX_ERROR) {
-                return rc;
-            } else if (rc == RULE_MATCH) {
-                goto MATCH;
-            } else if (rc == RULE_NO_MATCH) {
-                continue;
+                ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
+                return NGX_ERROR;
             }
         }
 
-        ngx_array_destroy(var_array);
+        var.data = vv->data;
+        var.len = vv->len;
+
+        rc = yy_sec_waf_re_op_execute(r, &var, &rule[i], ctx);
+
+        if (rc == NGX_ERROR) {
+            return rc;
+        } else if (rc == RULE_MATCH) {
+            goto MATCH;
+        } else if (rc == RULE_NO_MATCH) {
+            continue;
+        }
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Exit");
@@ -363,7 +322,7 @@ MATCH:
     if (ctx->allow)
         return NGX_DECLINED;
 
-    return ngx_http_yy_sec_waf_output_forbidden_page(r, ctx);
+    return yy_sec_waf_output_forbidden_page(r, ctx);
 }
 
 /*
@@ -557,4 +516,36 @@ ngx_http_yy_sec_waf_re_read_du_loc_conf(ngx_conf_t *cf,
     return NGX_CONF_OK;
 }
 
+/*
+** @description: This function is called to create rule engine for yy sec waf.
+** @para: ngx_conf_t *cf
+** @return: NGX_OK or NGX_ERROR if failed.
+*/
+
+ngx_int_t
+ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf)
+{
+    rule_engine = ngx_pcalloc(cf->pool, sizeof(yy_sec_waf_re_t));
+    if (rule_engine == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (ngx_http_yy_sec_waf_init_variables_in_hash(cf,
+            &rule_engine->variables_in_hash) == NGX_ERROR)
+        return NGX_ERROR;
+
+    if (ngx_http_yy_sec_waf_init_operators_in_hash(cf,
+            &rule_engine->operators_in_hash) == NGX_ERROR)
+        return NGX_ERROR;
+
+    if (ngx_http_yy_sec_waf_init_actions_in_hash(cf,
+            &rule_engine->actions_in_hash) == NGX_ERROR)
+        return NGX_ERROR;
+
+    if (ngx_http_yy_sec_waf_init_tfns_in_hash(cf,
+            &rule_engine->tfns_in_hash) == NGX_ERROR)
+        return NGX_ERROR;
+
+    return NGX_OK;
+}
 

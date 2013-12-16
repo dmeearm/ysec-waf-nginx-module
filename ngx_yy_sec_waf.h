@@ -110,8 +110,12 @@ typedef struct {
     ngx_str_t    *matched_string;
 } ngx_http_request_ctx_t;
 
-extern ngx_int_t ngx_http_yy_sec_waf_process_conn(ngx_http_request_ctx_t *ctx);
-extern ngx_shm_zone_t *ngx_http_yy_sec_waf_create_shm_zone(ngx_conf_t *cf);
+ngx_int_t ngx_http_yy_sec_waf_process_conn(ngx_http_request_ctx_t *ctx);
+
+ngx_shm_zone_t *ngx_http_yy_sec_waf_create_shm_zone(ngx_conf_t *cf);
+
+ngx_int_t ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
 
 
 #endif

@@ -55,14 +55,14 @@ typedef struct {
 } re_op_metadata;
 
 typedef int (*fn_var_generate_t)(void *rule,
-    void *ctx, ngx_array_t *var);
+    void *ctx, ngx_http_variable_value_t *v);
 
 typedef struct {
     const ngx_str_t name;
     fn_var_generate_t generate;
 } re_var_metadata;
 
-typedef ngx_int_t (*fn_tfns_execute_t)(ngx_str_t *str);
+typedef ngx_int_t (*fn_tfns_execute_t)(ngx_http_variable_value_t *v);
 
 typedef struct {
     const ngx_str_t name;
@@ -84,13 +84,19 @@ typedef struct {
     ngx_hash_t tfns_in_hash;
 } yy_sec_waf_re_t;
 
-re_action_metadata *yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action);
+ngx_int_t ngx_http_yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf,
+    ngx_hash_t *hash);
 
-re_op_metadata *yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator);
+ngx_int_t ngx_http_yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
+    ngx_hash_t *hash);
+
+ngx_int_t ngx_http_yy_sec_waf_init_actions_in_hash(ngx_conf_t *cf,
+    ngx_hash_t *hash);
+
+ngx_int_t ngx_http_yy_sec_waf_init_tfns_in_hash(ngx_conf_t *cf,
+    ngx_hash_t *hash);
 
 re_tfns_metadata *yy_sec_waf_re_resolve_tfn_in_hash(ngx_str_t *tfn);
-
-re_var_metadata *yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable);
 
 ngx_inline void yy_sec_waf_re_cache_init_rbtree(ngx_rbtree_t *rbtree,
     ngx_rbtree_node_t *sentinel);

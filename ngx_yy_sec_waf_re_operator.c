@@ -17,7 +17,7 @@
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_str(ngx_conf_t *cf,
+yy_sec_waf_parse_str(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
     ngx_str_t *str;
@@ -47,7 +47,7 @@ ngx_http_yy_sec_waf_parse_str(ngx_conf_t *cf,
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_execute_str(ngx_http_request_t *r,
+yy_sec_waf_execute_str(ngx_http_request_t *r,
     ngx_str_t *str, void *rule_p)
 {
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
@@ -75,7 +75,7 @@ ngx_http_yy_sec_waf_execute_str(ngx_http_request_t *r,
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
+yy_sec_waf_parse_regex(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
     ngx_regex_compile_t *rgc;
@@ -111,7 +111,7 @@ ngx_http_yy_sec_waf_parse_regex(ngx_conf_t *cf,
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_execute_regex(ngx_http_request_t *r,
+yy_sec_waf_execute_regex(ngx_http_request_t *r,
     ngx_str_t *str, void *rule_p)
 {
     int rc;
@@ -145,7 +145,7 @@ ngx_http_yy_sec_waf_execute_regex(ngx_http_request_t *r,
 */
 
 static void *
-ngx_http_yy_sec_waf_parse_eq(ngx_conf_t *cf,
+yy_sec_waf_parse_eq(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule_p)
 {
     ngx_str_t *eq;
@@ -175,7 +175,7 @@ ngx_http_yy_sec_waf_parse_eq(ngx_conf_t *cf,
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_execute_eq(ngx_http_request_t *r,
+yy_sec_waf_execute_eq(ngx_http_request_t *r,
     ngx_str_t *str, void *rule_p)
 {
     ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
@@ -255,9 +255,9 @@ yy_sec_waf_execute_gt(ngx_http_request_t *r,
 }
 
 static re_op_metadata op_metadata[] = {
-    { ngx_string("str"), ngx_http_yy_sec_waf_parse_str, ngx_http_yy_sec_waf_execute_str },
-    { ngx_string("regex"), ngx_http_yy_sec_waf_parse_regex, ngx_http_yy_sec_waf_execute_regex },
-    { ngx_string("eq"), ngx_http_yy_sec_waf_parse_eq, ngx_http_yy_sec_waf_execute_eq },
+    { ngx_string("str"), yy_sec_waf_parse_str, yy_sec_waf_execute_str },
+    { ngx_string("regex"), yy_sec_waf_parse_regex, yy_sec_waf_execute_regex },
+    { ngx_string("eq"), yy_sec_waf_parse_eq, yy_sec_waf_execute_eq },
     { ngx_string("gt"), yy_sec_waf_parse_gt, yy_sec_waf_execute_gt },
     { ngx_null_string, NULL, NULL }
 };
@@ -270,7 +270,7 @@ static re_op_metadata op_metadata[] = {
 */
 
 ngx_int_t
-yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
+ngx_http_yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
     ngx_hash_t *operators_in_hash)
 {
     ngx_array_t         operators;

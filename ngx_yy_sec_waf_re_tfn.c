@@ -16,13 +16,17 @@
 */
 
 static ngx_int_t
-yy_sec_waf_re_tfns_urldecode(ngx_str_t *str)
+yy_sec_waf_re_tfns_urldecode(ngx_http_variable_value_t *v)
 {
-    if (str == NULL) {
+    if (v == NULL) {
         return NGX_ERROR;
     }
 
-    ngx_yy_sec_waf_unescape(str);
+    ngx_str_t str;
+    str.data = v->data;
+    str.len = v->len;
+
+    ngx_yy_sec_waf_unescape(&str);
 
     return NGX_OK;
 }
@@ -40,7 +44,7 @@ static re_tfns_metadata tfns_metadata[] = {
 */
 
 ngx_int_t
-yy_sec_waf_init_tfns_in_hash(ngx_conf_t *cf,
+ngx_http_yy_sec_waf_init_tfns_in_hash(ngx_conf_t *cf,
     ngx_hash_t *tfns_in_hash)
 {
     ngx_array_t         tfns;
