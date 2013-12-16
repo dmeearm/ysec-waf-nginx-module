@@ -312,7 +312,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
     if (cf == NULL) {
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
         return NGX_ERROR;
     }
 
@@ -327,7 +327,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     }
 
     if (!cf->enabled) {
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
         return NGX_DECLINED;
     }
 
@@ -371,14 +371,14 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             return rc;
         }
     } else {
-		ctx->read_body_done = 1;
-	}
+        ctx->read_body_done = 1;
+    }
 
     if (ctx && ctx->read_body_done && !ctx->process_done) {
         rc = ngx_http_yy_sec_waf_process_request(r, cf, ctx);
 
         if (rc == NGX_ERROR) {
-			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed");
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed");
             return NGX_ERROR;
         }
 
