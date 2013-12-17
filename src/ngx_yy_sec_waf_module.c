@@ -183,6 +183,10 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->request_header_rules = prev->request_header_rules;
     if (conf->request_body_rules == NULL)
         conf->request_body_rules = prev->request_body_rules;
+    if (conf->response_header_rules == NULL)
+        conf->response_header_rules = prev->response_header_rules;
+    if (conf->response_body_rules == NULL)
+        conf->response_body_rules = prev->response_body_rules;
     if (conf->denied_url == NULL)
         conf->denied_url = prev->denied_url;
     if (conf->shm_zone == NULL)
