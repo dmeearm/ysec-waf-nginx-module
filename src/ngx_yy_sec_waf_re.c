@@ -213,12 +213,9 @@ yy_sec_waf_re_op_execute(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to execute operator.
-** @para: ngx_http_request_t *r
-** @para: ngx_str_t *str
-** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @description: This function is called to perform interception.
 ** @para: ngx_http_request_ctx_t *ctx
-** @return: RULE_MATCH or RULE_NO_MATCH if failed.
+** @return: static ngx_int_t.
 */
 
 static ngx_int_t
@@ -342,33 +339,6 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 
 MATCH:
     return yy_sec_waf_re_perform_interception(ctx);
-}
-
-/*
-** @description: This function is called to process the request.
-** @para: ngx_http_request_t *r
-** @para: ngx_conf_t *cf
-** @para: ngx_http_request_ctx_t *ctx
-** @return: NGX_OK or NGX_ERROR if failed.
-*/
-
-ngx_int_t
-ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
-    ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
-{
-    ngx_int_t rc;
-
-    if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
-        && r->request_body) {
-        ngx_http_yy_sec_waf_process_body(r, cf, ctx);
-
-        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
-        if (ctx->matched || rc == NGX_ERROR) {
-            return rc;
-        }
-    }
-
-    return NGX_DECLINED;
 }
 
 /*

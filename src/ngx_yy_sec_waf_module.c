@@ -302,8 +302,6 @@ ngx_http_yy_sec_waf_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 {
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_handler Enter");
-
     ngx_int_t                       rc;
     ngx_http_request_ctx_t         *ctx;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
@@ -367,7 +365,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             ctx->waiting_more_body = 1;
             return NGX_DONE;
         } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE || rc == NGX_ERROR) {
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_read_client_request_body failed");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"[ysec_waf] ngx_http_read_client_request_body failed");
             return rc;
         }
     } else {
@@ -375,19 +373,23 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     }
 
     if (ctx && ctx->read_body_done && !ctx->process_done) {
-        rc = ngx_http_yy_sec_waf_process_request(r, cf, ctx);
+        rc = NGX_DECLINED;
 
-        if (rc == NGX_ERROR) {
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,"[ysec_waf] ngx_http_yy_sec_waf_process_request failed");
-            return NGX_ERROR;
-        }
+		if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
+			&& r->request_body) {
+			rc = ngx_http_yy_sec_waf_process_body(r, cf, ctx);
+            if (rc == NGX_ERROR) {
+                return rc;
+            }
 
-        ctx->process_done = 1;
+			rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
+			if (ctx->matched || rc == NGX_ERROR) {
+				return rc;
+			}
+		}
 
         return rc;
     }
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_handler Exit");
 
     return NGX_DECLINED;
 }
