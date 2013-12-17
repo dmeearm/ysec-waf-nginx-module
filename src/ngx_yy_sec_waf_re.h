@@ -12,38 +12,43 @@
 #include "ngx_yy_sec_waf.h"
 
 
-#define STR "str:"
+#define STR   "str:"
 #define REGEX "regex:"
-#define EQ "eq:"
-#define GT "gt:"
-#define GIDS "gids:"
-#define ID "id:"
-#define MSG "msg:"
-#define POS "pos:"
+#define EQ    "eq:"
+#define GT    "gt:"
+#define GIDS  "gids:"
+#define ID    "id:"
+#define MSG   "msg:"
+#define POS   "pos:"
 #define LEVEL "lev:"
 #define PHASE "phase:"
 
 #define TFNS "t:"
 
 /* LEV */
-#define LOG "log"
+#define LOG   "log"
 #define BLOCK "block"
 #define ALLOW "allow"
+
+#define ACTION_NONE    0x0
+#define ACTION_LOG    0x01
+#define ACTION_BLOCK  0x10
+#define ACTION_ALLOW 0x100
 
 #define RULE_MATCH              1
 #define RULE_NO_MATCH           2
 
-#define REQUEST_HEADER_PHASE 0x01
-#define REQUEST_BODY_PHASE 0x10
-#define RESPONSE_HEADER_PHASE 0x100
-#define RESPONSE_BODY_PHASE 0x1000
+#define REQUEST_HEADER_PHASE    0x01
+#define REQUEST_BODY_PHASE      0x10
+#define RESPONSE_HEADER_PHASE  0x100
+#define RESPONSE_BODY_PHASE   0x1000
 
-#define UNCOMMON_CONTENT_TYPE 10
-#define UNCOMMON_FILENAME 11
+#define UNCOMMON_CONTENT_TYPE     10
+#define UNCOMMON_FILENAME         11
 #define UNCOMMON_FILENAME_POSTFIX 12
-#define UNCOMMON_HEX_ENCODING 13
-#define UNCOMMON_POST_BOUNDARY 14
-#define UNCOMMON_POST_FORMAT 15
+#define UNCOMMON_HEX_ENCODING     13
+#define UNCOMMON_POST_BOUNDARY    14
+#define UNCOMMON_POST_FORMAT      15
 
 typedef void* (*fn_op_parse_t)(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule);

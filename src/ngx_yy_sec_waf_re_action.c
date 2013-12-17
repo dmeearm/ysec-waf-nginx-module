@@ -124,18 +124,19 @@ yy_sec_waf_parse_level(ngx_conf_t *cf,
             tmp_ptr++;
         /* match global zones */
         if (!ngx_strncasecmp(tmp_ptr, (u_char*)BLOCK, ngx_strlen(BLOCK))) {
-            rule->block = 1;
+            rule->action_level |= ACTION_BLOCK;
             tmp_ptr += ngx_strlen(BLOCK);
             continue;
         } else if (!ngx_strncasecmp(tmp_ptr, (u_char*)LOG, ngx_strlen(LOG))) {
-            rule->log = 1;
+            rule->action_level |= ACTION_LOG;
             tmp_ptr += ngx_strlen(LOG);
             continue;
         } else if (!ngx_strncasecmp(tmp_ptr, (u_char*)ALLOW, ngx_strlen(ALLOW))) {
-            rule->allow = 1;
+            rule->action_level |= ACTION_ALLOW;
             tmp_ptr += ngx_strlen(ALLOW);
             continue;
         } else {
+            rule->action_level &= ACTION_NONE;
             return (NGX_CONF_ERROR);
         }
     }

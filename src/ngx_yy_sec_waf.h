@@ -49,10 +49,8 @@ typedef struct ngx_http_yy_sec_waf_rule {
     re_tfns_metadata *tfn_metadata;
     re_action_metadata *action_metadata;
 
-    /* LEVEL*/
-    ngx_flag_t    log:1;
-    ngx_flag_t    block:1;
-    ngx_flag_t    allow:1;
+    /* level flags*/
+    ngx_flag_t    action_level;
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
@@ -96,10 +94,9 @@ typedef struct {
     ngx_uint_t conn_per_ip;
     ngx_int_t  var_index;
 
-    /* blocking flags*/
-    ngx_flag_t    log:1;
-    ngx_flag_t    block:1;
-    ngx_flag_t    allow:1;
+    /* level flags*/
+    ngx_flag_t    action_level;
+
     /* state */
     ngx_flag_t    process_done:1;
     ngx_flag_t    read_body_done:1;

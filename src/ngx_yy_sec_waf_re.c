@@ -202,9 +202,7 @@ yy_sec_waf_re_op_execute(ngx_http_request_t *r,
         || (rc == RULE_NO_MATCH && rule->op_negative)) {
         ctx->matched = 1;
         ctx->rule_id = rule->rule_id;
-        ctx->allow = rule->allow;
-        ctx->block = rule->block;
-        ctx->log = rule->log;
+        ctx->action_level = rule->action_level;
         ctx->gids = rule->gids;
         ctx->msg = rule->msg;
         ctx->matched_string = str;
@@ -307,27 +305,28 @@ MATCH:
 
     ctx->process_done = 1;
 
-    if (ctx->log)
+    if (ctx->action_level & ACTION_LOG)
         ngx_atomic_fetch_add(request_logged, 1);
 
-    if (ctx->allow)
+    if (ctx->action_level & ACTION_ALLOW)
         ngx_atomic_fetch_add(request_allowed, 1);
     
-    if (ctx->block)
+    if (ctx->action_level & ACTION_BLOCK)
         ngx_atomic_fetch_add(request_blocked, 1);
 
-    if (ctx->log && ctx->matched_string) {
+    if ((ctx->action_level & ACTION_LOG) && ctx->matched_string) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
             "[ysec_waf] %s, id:%d, conn_per_ip:%ud,"
             " matched:%uA, blocked:%uA, allowed:%uA, alerted:%uA"
             " msg:%V, info:%V",
-            ctx->block? "block": ctx->allow? "allow": "alert",
+            (ctx->action_level & ACTION_BLOCK)? "block":
+            (ctx->action_level & ACTION_ALLOW)? "allow": "alert",
             ctx->rule_id, ctx->conn_per_ip,
             *request_matched, *request_blocked, *request_allowed, *request_logged,
             ctx->msg, ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string);
     }
 
-    if (ctx->allow)
+    if (ctx->action_level & ACTION_ALLOW)
         return NGX_DECLINED;
 
     return yy_sec_waf_output_forbidden_page(r, ctx);
