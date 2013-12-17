@@ -233,39 +233,31 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_str_t                   var;
     ngx_http_yy_sec_waf_rule_t *rule;
     ngx_http_variable_value_t  *vv;
+    ngx_array_t                *rule_array;
 
-    rule = NULL;
-    rule_num = 0;
+	if (ctx->cf == NULL) {
+		return NGX_ERROR;
+	}
 
-    if (phase == REQUEST_HEADER_PHASE) {
-        if (ctx->cf->request_header_rules == NULL) {
+    switch(phase) {
+        case REQUEST_HEADER_PHASE:
+            rule_array = ctx->cf->request_header_rules;
+            break;
+        case REQUEST_BODY_PHASE:
+            rule_array = ctx->cf->request_body_rules;
+            break;
+        case RESPONSE_HEADER_PHASE:
+            rule_array = ctx->cf->response_header_rules;
+            break;
+        case RESPONSE_BODY_PHASE:
+            rule_array = ctx->cf->response_body_rules;
+            break;
+        default:
             return NGX_ERROR;
-        }
+    }
 
-        rule = cf->request_header_rules->elts;
-        rule_num = cf->request_header_rules->nelts;
-    } else if (phase == REQUEST_BODY_PHASE) {
-        if (ctx->cf->request_body_rules == NULL) {
-            return NGX_ERROR;
-        }
-
-        rule = cf->request_body_rules->elts;
-        rule_num = cf->request_body_rules->nelts;
-    } else if (phase == RESPONSE_HEADER_PHASE) {
-        if (ctx->cf->request_body_rules == NULL) {
-            return NGX_ERROR;
-        }
-
-        rule = cf->response_header_rules->elts;
-        rule_num = cf->response_header_rules->nelts;
-    } else if (phase == RESPONSE_BODY_PHASE) {
-        if (ctx->cf->request_body_rules == NULL) {
-            return NGX_ERROR;
-        }
-
-        rule = cf->response_body_rules->elts;
-        rule_num = cf->response_body_rules->nelts;
-    } 
+    rule = rule_array->elts;
+    rule_num = rule_array->nelts;
 
     ctx->phase = phase;
 
