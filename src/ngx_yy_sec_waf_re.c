@@ -213,6 +213,49 @@ yy_sec_waf_re_op_execute(ngx_http_request_t *r,
 }
 
 /*
+** @description: This function is called to execute operator.
+** @para: ngx_http_request_t *r
+** @para: ngx_str_t *str
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @return: RULE_MATCH or RULE_NO_MATCH if failed.
+*/
+
+static ngx_int_t
+yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
+{
+    ngx_atomic_fetch_add(request_matched, 1);
+
+    ctx->process_done = 1;
+
+    if (ctx->action_level & ACTION_LOG)
+        ngx_atomic_fetch_add(request_logged, 1);
+
+    if (ctx->action_level & ACTION_ALLOW)
+        ngx_atomic_fetch_add(request_allowed, 1);
+    
+    if (ctx->action_level & ACTION_BLOCK)
+        ngx_atomic_fetch_add(request_blocked, 1);
+
+    if ((ctx->action_level & ACTION_LOG) && ctx->matched_string) {
+        ngx_log_error(NGX_LOG_ERR, ctx->r->connection->log, 0,
+            "[ysec_waf] %s, id:%d, conn_per_ip:%ud,"
+            " matched:%uA, blocked:%uA, allowed:%uA, alerted:%uA"
+            " msg:%V, info:%V",
+            (ctx->action_level & ACTION_BLOCK)? "block":
+            (ctx->action_level & ACTION_ALLOW)? "allow": "alert",
+            ctx->rule_id, ctx->conn_per_ip,
+            *request_matched, *request_blocked, *request_allowed, *request_logged,
+            ctx->msg, ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string);
+    }
+
+    if (ctx->action_level & ACTION_BLOCK)
+        return yy_sec_waf_output_forbidden_page(ctx->r, ctx);
+
+    return NGX_DECLINED;
+}
+
+/*
 ** @description: This function is called to process normal rules for yy sec waf.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
@@ -224,8 +267,6 @@ ngx_int_t
 yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase)
 {
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Entry");
-
     ngx_uint_t                  i, rule_num;
     ngx_int_t                   rc;
     ngx_str_t                   var;
@@ -288,6 +329,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         rc = yy_sec_waf_re_op_execute(r, &var, &rule[i], ctx);
 
         if (rc == NGX_ERROR) {
+            ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute operator");
             return rc;
         } else if (rc == RULE_MATCH) {
             goto MATCH;
@@ -296,40 +338,10 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         }
     }
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy_sec_waf_re_process_normal_rules Exit");
-
     return NGX_DECLINED;
 
 MATCH:
-    ngx_atomic_fetch_add(request_matched, 1);
-
-    ctx->process_done = 1;
-
-    if (ctx->action_level & ACTION_LOG)
-        ngx_atomic_fetch_add(request_logged, 1);
-
-    if (ctx->action_level & ACTION_ALLOW)
-        ngx_atomic_fetch_add(request_allowed, 1);
-    
-    if (ctx->action_level & ACTION_BLOCK)
-        ngx_atomic_fetch_add(request_blocked, 1);
-
-    if ((ctx->action_level & ACTION_LOG) && ctx->matched_string) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-            "[ysec_waf] %s, id:%d, conn_per_ip:%ud,"
-            " matched:%uA, blocked:%uA, allowed:%uA, alerted:%uA"
-            " msg:%V, info:%V",
-            (ctx->action_level & ACTION_BLOCK)? "block":
-            (ctx->action_level & ACTION_ALLOW)? "allow": "alert",
-            ctx->rule_id, ctx->conn_per_ip,
-            *request_matched, *request_blocked, *request_allowed, *request_logged,
-            ctx->msg, ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string);
-    }
-
-    if (ctx->action_level & ACTION_ALLOW)
-        return NGX_DECLINED;
-
-    return yy_sec_waf_output_forbidden_page(r, ctx);
+    return yy_sec_waf_re_perform_interception(ctx);
 }
 
 /*
