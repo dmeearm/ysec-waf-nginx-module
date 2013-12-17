@@ -232,7 +232,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_int_t                   rc;
     ngx_str_t                   var;
     ngx_http_yy_sec_waf_rule_t *rule;
-    ngx_http_variable_value_t  *vv;
+    ngx_http_variable_value_t   vv;
     ngx_array_t                *rule_array;
 
 	if (ctx->cf == NULL) {
@@ -256,6 +256,10 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
             return NGX_ERROR;
     }
 
+    if (rule_array == NULL) {
+        return NGX_ERROR;
+    }
+
     rule = rule_array->elts;
     rule_num = rule_array->nelts;
 
@@ -266,24 +270,22 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         if (rule[i].var_metadata == NULL || rule[i].var_metadata->generate == NULL)
             continue;
 
-        vv = ngx_palloc(r->pool, sizeof(ngx_http_variable_value_t));
+        rc = rule[i].var_metadata->generate(&rule[i], ctx, &vv);
 
-        rc = rule[i].var_metadata->generate(&rule[i], ctx, vv);
-
-        if (rc == NGX_ERROR || vv->not_found) {
+        if (rc == NGX_ERROR || vv.not_found) {
             continue;
         }
 
         if (rule[i].tfn_metadata != NULL) {
-            rc = rule[i].tfn_metadata->execute(vv);
+            rc = rule[i].tfn_metadata->execute(&vv);
             if (rc == NGX_ERROR) {
                 ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
                 return NGX_ERROR;
             }
         }
 
-        var.data = vv->data;
-        var.len = vv->len;
+        var.data = vv.data;
+        var.len = vv.len;
 
         rc = yy_sec_waf_re_op_execute(r, &var, &rule[i], ctx);
 
