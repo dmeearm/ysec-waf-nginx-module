@@ -223,6 +223,36 @@ yy_sec_waf_parse_tfn(ngx_conf_t *cf,
     return NGX_CONF_OK;
 }
 
+/*
+** @description: This function is called to parse chain of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+yy_sec_waf_parse_chain(ngx_conf_t *cf,
+    ngx_str_t *tmp, void *rule_p)
+{
+    ngx_str_t *chain;
+
+    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
+
+    if (!rule)
+        return NGX_CONF_ERROR;
+
+    chain = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+    if (!chain)
+        return NGX_CONF_ERROR;
+
+    chain->data = tmp->data + ngx_strlen("chain:");
+    chain->len = tmp->len - ngx_strlen("chain:");
+
+    rule->is_chain = ngx_atoi(chain->data, chain->len);
+
+    return NGX_CONF_OK;
+}
 static re_action_metadata action_metadata[] = {
     { ngx_string("gids"), yy_sec_waf_parse_gids},
     { ngx_string("id"), yy_sec_waf_parse_rule_id},
@@ -230,6 +260,7 @@ static re_action_metadata action_metadata[] = {
     { ngx_string("lev"), yy_sec_waf_parse_level},
     { ngx_string("phase"), yy_sec_waf_parse_phase},
     { ngx_string("t"), yy_sec_waf_parse_tfn},
+    { ngx_string("chain"), yy_sec_waf_parse_chain},
     { ngx_null_string, NULL}
 };
 

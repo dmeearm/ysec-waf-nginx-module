@@ -1,5 +1,5 @@
 /*
-** @file: ngx_yy_sec_waf_re.c
+
 ** @description: This is the rule rule engine for yy sec waf.
 ** @author: dw_liqi1<liqi1@yy.com>
 ** @date: 2013.07.15

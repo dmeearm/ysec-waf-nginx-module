@@ -51,6 +51,8 @@ typedef struct ngx_http_yy_sec_waf_rule {
 
     /* level flags*/
     ngx_flag_t    action_level;
+
+    ngx_flag_t     is_chain;
 } ngx_http_yy_sec_waf_rule_t;
 
 typedef struct {
