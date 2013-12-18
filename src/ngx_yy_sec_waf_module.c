@@ -238,9 +238,16 @@ ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_HEADER_PHASE);
-    if (rc != NGX_DECLINED) {
-	    return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
+    if (!cf->enabled) {
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
+        return NGX_DECLINED;
+    }
+
+    if (!ctx->process_done) {
+        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_HEADER_PHASE);
+        if (rc != NGX_DECLINED) {
+            return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
+        }
     }
 
     return ngx_http_next_header_filter(r);
@@ -265,13 +272,19 @@ ngx_http_yy_sec_waf_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
     if (cf == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        return NGX_ERROR;
     }
 
-    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_BODY_PHASE);
-    if (rc != NGX_DECLINED) {
-	    return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
+    if (!cf->enabled) {
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
+        return NGX_DECLINED;
+    }
+
+    if (!ctx->process_done) {
+        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_BODY_PHASE);
+        if (rc != NGX_DECLINED) {
+            return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
+        }
     }
 
     return ngx_http_next_body_filter(r, in);
@@ -332,7 +345,6 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
     if (cf == NULL) {
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
         return NGX_ERROR;
     }
 
@@ -367,16 +379,18 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
     if (cf->conn_processor) {
         rc = ngx_http_yy_sec_waf_process_conn(ctx);
-    
+
         if (rc != NGX_OK) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_conn failed");
             return rc;
         }
     }
 
-    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
-    if (ctx->matched || rc == NGX_ERROR) {
-        return rc;
+    if (!ctx->process_done) {
+        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
+        if (ctx->matched || rc == NGX_ERROR) {
+            return rc;
+        }
     }
 
     /* This section is prepared for further considerations, such as checking the body of this request.*/
