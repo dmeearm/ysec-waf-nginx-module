@@ -88,6 +88,31 @@ yy_sec_waf_re_resolve_operator_in_hash(ngx_str_t *operator)
 }
 
 /*
+** @description: This function is called to resolve actions in hash.
+** @para: ngx_str_t *action
+** @return: static re_action_metadata *
+*/
+
+re_action_metadata *
+yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action)
+{
+    ngx_uint_t key;
+    re_action_metadata *metadata;
+
+    if (action == NULL) {
+        return NULL;
+    }
+
+    key = ngx_hash_key_lc(action->data, action->len);
+    ngx_strlow(action->data, action->data, action->len);
+
+    metadata = (re_action_metadata *)ngx_hash_find(
+        &rule_engine->actions_in_hash, key, action->data, action->len);
+
+    return metadata;
+}
+
+/*
 ** @description: This function is called to redirect request url to the denied url of yy sec waf.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_request_ctx_t *ctx
@@ -157,31 +182,6 @@ yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to resolve actions in hash.
-** @para: ngx_str_t *action
-** @return: static re_action_metadata *
-*/
-
-re_action_metadata *
-yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action)
-{
-    ngx_uint_t key;
-    re_action_metadata *metadata;
-
-    if (action == NULL) {
-        return NULL;
-    }
-
-    key = ngx_hash_key_lc(action->data, action->len);
-    ngx_strlow(action->data, action->data, action->len);
-
-    metadata = (re_action_metadata *)ngx_hash_find(
-        &rule_engine->actions_in_hash, key, action->data, action->len);
-
-    return metadata;
-}
-
-/*
 ** @description: This function is called to execute operator.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
@@ -191,7 +191,7 @@ yy_sec_waf_re_resolve_action_in_hash(ngx_str_t *action)
 */
 
 static ngx_int_t
-yy_sec_waf_re_op_execute(ngx_http_request_t *r,
+yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
     ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
     ngx_int_t rc;
@@ -324,7 +324,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         var.data = vv.data;
         var.len = vv.len;
 
-        rc = yy_sec_waf_re_op_execute(r, &var, &rule[i], ctx);
+        rc = yy_sec_waf_re_execute_operator(r, &var, &rule[i], ctx);
 
         if (rc == NGX_ERROR) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute operator");
