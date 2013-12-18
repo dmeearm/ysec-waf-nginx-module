@@ -442,7 +442,6 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ngx_http_request_ctx_t *ctx;
 
     ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_request_ctx_t));
-    
     if (ctx == NULL) {
         return NULL;
     }
@@ -462,21 +461,26 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
 
     ngx_yy_sec_waf_unescape(ctx->args);
 
-    ctx->post_args = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
+    if (r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) {
+        ctx->post_args = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
+        if (ctx->post_args == NULL) {
+            return NULL;
+        }
 
-    ctx->multipart_filename = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
-    if (ctx->multipart_filename == NULL) {
-        return NULL;
+        ctx->multipart_filename = ngx_array_create(r->pool, 1, sizeof(ngx_array_t));
+        if (ctx->multipart_filename == NULL) {
+            return NULL;
+        }
+        ctx->multipart_name = ngx_array_create(r->pool, 1, sizeof(ngx_array_t));
+        if (ctx->multipart_name == NULL) {
+            return NULL;
+        }
+        ctx->content_type = ngx_array_create(r->pool, 1, sizeof(ngx_array_t));
+        if (ctx->content_type == NULL) {
+            return NULL;
+        }
     }
-    ctx->multipart_name = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
-    if (ctx->multipart_name == NULL) {
-        return NULL;
-    }
-    ctx->content_type = ngx_array_create(r->pool, 1, sizeof(ngx_str_t));
-    if (ctx->content_type == NULL) {
-        return NULL;
-    }
-    
+
     ctx->process_body_error = 0;
 
     ctx->r = r;
