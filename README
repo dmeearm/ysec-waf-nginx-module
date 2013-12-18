@@ -1,7 +1,7 @@
 Introduction
 ============
 This software is open source, works as a WAF module in Nginx web server, and it provides 
-an lightweight infrastructure for us to look into the content of requests from clients.
+an lightweight and restful infrastructure for us to look into the content of requests from clients.
 
 It can defend amount of attacks, such as COMMAND/XSS/SQL/HEADER injection,
 upload file attack, slow HTTP DOS, hash consistency attack, etc.
