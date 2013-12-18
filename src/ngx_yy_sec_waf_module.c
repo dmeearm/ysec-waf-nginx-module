@@ -224,8 +224,11 @@ ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
 {
+    ngx_int_t                       rc;
     ngx_http_request_ctx_t         *ctx;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_header_filter Entry");
 
     cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
@@ -235,7 +238,12 @@ ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    return yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_HEADER_PHASE);
+    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_HEADER_PHASE);
+    if (rc != NGX_DECLINED) {
+	    return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
+    }
+
+    return ngx_http_next_header_filter(r);
 }
 
 /*
@@ -247,18 +255,26 @@ ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_yy_sec_waf_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
+    ngx_int_t                       rc;
     ngx_http_request_ctx_t         *ctx;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_body_filter Entry");
 
     cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
     if (cf == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] ngx_http_get_module_loc_conf failed.");
-        return NGX_ERROR;
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    return yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_BODY_PHASE);
+    rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_BODY_PHASE);
+    if (rc != NGX_DECLINED) {
+	    return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
+    }
+
+    return ngx_http_next_body_filter(r, in);
 }
 
 /*
@@ -309,6 +325,8 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     ngx_int_t                       rc;
     ngx_http_request_ctx_t         *ctx;
     ngx_http_yy_sec_waf_loc_conf_t *cf;
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_handler Entry");
 
     cf = ngx_http_get_module_loc_conf(r, ngx_http_yy_sec_waf_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);

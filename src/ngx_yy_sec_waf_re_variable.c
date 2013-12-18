@@ -257,7 +257,7 @@ yy_sec_waf_generate_inner_var(void *rule_p,
             return NGX_ERROR;
         }
 
-        ngx_memcpy(v, vv, sizeof(vv));
+        ngx_memcpy(v, vv, sizeof(ngx_http_variable_value_t));
     }
 
     return NGX_OK;

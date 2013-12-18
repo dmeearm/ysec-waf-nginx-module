@@ -293,7 +293,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     }
 
     if (rule_array == NULL) {
-        return NGX_ERROR;
+        return NGX_DECLINED;
     }
 
     rule = rule_array->elts;
@@ -306,6 +306,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         if (rule[i].var_metadata == NULL || rule[i].var_metadata->generate == NULL)
             continue;
 
+        ngx_memzero(&vv, sizeof(vv));
         rc = rule[i].var_metadata->generate(&rule[i], ctx, &vv);
 
         if (rc == NGX_ERROR || vv.not_found) {
@@ -315,7 +316,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         if (rule[i].tfn_metadata != NULL) {
             rc = rule[i].tfn_metadata->execute(&vv);
             if (rc == NGX_ERROR) {
-                ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
                 return NGX_ERROR;
             }
         }
@@ -326,7 +327,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         rc = yy_sec_waf_re_op_execute(r, &var, &rule[i], ctx);
 
         if (rc == NGX_ERROR) {
-            ngx_log_error(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] failed to execute operator");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute operator");
             return rc;
         } else if (rc == RULE_MATCH) {
             goto MATCH;
@@ -373,6 +374,7 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     } else {
         ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
     }
+
 
     rule.var_metadata = yy_sec_waf_re_resolve_variable_in_hash(&variable); 
 
