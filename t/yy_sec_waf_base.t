@@ -94,5 +94,5 @@ Content-Type: application/x-www-form-urlencoded
 --- request eval
 use URI::Escape;
 "POST /
-foo1=ba%%2f%3c%3D%3%D%33%DD%FF%2F%3cr1&foo2=bar2"
+foo1=%3Cscript%3E&foo2=bar2"
 --- error_code: 412
