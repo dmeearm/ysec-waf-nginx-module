@@ -265,7 +265,7 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx, ngx_uint_t phase)
 {
     ngx_uint_t                  i, rule_num;
-    ngx_int_t                   rc;
+    ngx_int_t                   rc, mode;
     ngx_str_t                   var;
     ngx_http_yy_sec_waf_rule_t *rule;
     ngx_http_variable_value_t   vv;
@@ -296,12 +296,28 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         return NGX_DECLINED;
     }
 
+    mode = NEXT_RULE;
     rule = rule_array->elts;
     rule_num = rule_array->nelts;
 
     ctx->phase = phase;
 
     for (i=0; i < rule_num; i++) {
+
+        if (mode == NEXT_CHAIN) {
+            if (rule[i].is_chain == 1) {
+                mode = NEXT_CHAIN;
+            }
+
+            mode = NEXT_RULE;
+            continue;
+        }
+
+        if (mode == NEXT_RULE) {
+            if (rule[i].is_chain == 1) {
+                mode = NEXT_CHAIN;
+            }
+        }
 
         if (rule[i].var_metadata == NULL || rule[i].var_metadata->generate == NULL)
             continue;
@@ -330,8 +346,18 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute operator");
             return rc;
         } else if (rc == RULE_MATCH) {
+            if (rule[i].is_chain == 1) {
+                mode = NEXT_RULE;
+            }
+
             goto MATCH;
         } else if (rc == RULE_NO_MATCH) {
+            if (rule[i].is_chain == 1) {
+                mode = NEXT_CHAIN;
+            } else {
+                mode = NEXT_RULE;
+            }
+
             continue;
         }
     }

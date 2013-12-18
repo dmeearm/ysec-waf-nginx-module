@@ -50,6 +50,9 @@
 #define UNCOMMON_POST_BOUNDARY    14
 #define UNCOMMON_POST_FORMAT      15
 
+#define NEXT_CHAIN                 1
+#define NEXT_RULE                  2
+
 typedef void* (*fn_op_parse_t)(ngx_conf_t *cf,
     ngx_str_t *tmp, void *rule);
 typedef ngx_int_t (*fn_op_execute_t)(ngx_http_request_t *r,
