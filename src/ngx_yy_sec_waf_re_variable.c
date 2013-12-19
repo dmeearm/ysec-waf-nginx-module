@@ -6,7 +6,7 @@
 ** Copyright (C) YY, Inc.
 */
 
-#include "ngx_yy_sec_waf.h"
+#include "ngx_yy_sec_waf_re.h"
 
 static ngx_http_variable_value_t  yy_sec_waf_false_value = ngx_http_variable("0");
 
@@ -21,12 +21,9 @@ static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1")
 */
 
 static int
-yy_sec_waf_generate_args(void *rule_p,
-    void *ctx_p, ngx_http_variable_value_t *v)
+yy_sec_waf_generate_args(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
 {
-    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
-
     if (rule == NULL || ctx == NULL || v == NULL) {
         return NGX_ERROR;
     }
@@ -56,12 +53,9 @@ yy_sec_waf_generate_args(void *rule_p,
 */
 
 static int
-yy_sec_waf_generate_post_args_count(void *rule_p,
-    void *ctx_p, ngx_http_variable_value_t *v)
+yy_sec_waf_generate_post_args_count(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
 {
-    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
-
     if (rule == NULL || ctx == NULL || v == NULL) {
         return NGX_ERROR;
     }
@@ -87,12 +81,9 @@ yy_sec_waf_generate_post_args_count(void *rule_p,
 */
 
 static int
-yy_sec_waf_generate_process_body_error(void *rule_p,
-    void *ctx_p, ngx_http_variable_value_t *v)
+yy_sec_waf_generate_process_body_error(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
 {
-    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
-
     if (rule == NULL || ctx == NULL || v == NULL) {
         return NGX_ERROR;
     }
@@ -115,12 +106,9 @@ yy_sec_waf_generate_process_body_error(void *rule_p,
 */
 
 static int
-yy_sec_waf_generate_multipart_name(void *rule_p,
-    void *ctx_p, ngx_http_variable_value_t *v)
+yy_sec_waf_generate_multipart_name(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
 {
-    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
-
     if (rule == NULL || ctx == NULL || v == NULL) {
         return NGX_ERROR;
     }
@@ -161,12 +149,9 @@ yy_sec_waf_generate_multipart_name(void *rule_p,
 */
 
 static int
-yy_sec_waf_generate_multipart_filename(void *rule_p,
-    void *ctx_p, ngx_http_variable_value_t *v)
+yy_sec_waf_generate_multipart_filename(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
 {
-    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
-
     if (rule == NULL || ctx == NULL || v == NULL) {
         return NGX_ERROR;
     }
@@ -207,12 +192,9 @@ yy_sec_waf_generate_multipart_filename(void *rule_p,
 */
 
 static int
-yy_sec_waf_generate_conn_per_ip(void *rule_p,
-    void *ctx_p, ngx_http_variable_value_t *v)
+yy_sec_waf_generate_conn_per_ip(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
 {
-    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
-
     if (rule == NULL || ctx == NULL || v == NULL) {
         return NGX_ERROR;
     }
@@ -238,12 +220,9 @@ yy_sec_waf_generate_conn_per_ip(void *rule_p,
 */
 
 static int
-yy_sec_waf_generate_inner_var(void *rule_p,
-    void *ctx_p, ngx_http_variable_value_t *v)
+yy_sec_waf_generate_inner_var(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
 {
-    ngx_http_request_ctx_t *ctx = (ngx_http_request_ctx_t *)ctx_p;
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t *)rule_p;
-
     if (rule == NULL || ctx == NULL || v == NULL) {
         return NGX_ERROR;
     }

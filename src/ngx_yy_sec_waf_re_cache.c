@@ -6,7 +6,7 @@
 ** Copyright (C) YY, Inc.
 */
 
-#include "ngx_yy_sec_waf.h"
+#include "ngx_yy_sec_waf_re.h"
 
 typedef struct {
     ngx_str_node_t sn;

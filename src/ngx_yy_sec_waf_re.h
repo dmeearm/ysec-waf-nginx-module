@@ -54,9 +54,9 @@
 #define NEXT_RULE                  2
 
 typedef void* (*fn_op_parse_t)(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule);
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 typedef ngx_int_t (*fn_op_execute_t)(ngx_http_request_t *r,
-    ngx_str_t *str, void *rule);
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule);
 
 typedef struct {
     const ngx_str_t name;
@@ -64,8 +64,8 @@ typedef struct {
     fn_op_execute_t execute;
 } re_op_metadata;
 
-typedef int (*fn_var_generate_t)(void *rule,
-    void *ctx, ngx_http_variable_value_t *v);
+typedef int (*fn_var_generate_t)(ngx_http_yy_sec_waf_rule_t *rule,
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v);
 
 typedef struct {
     const ngx_str_t name;
@@ -80,7 +80,7 @@ typedef struct {
 } re_tfns_metadata;
 
 typedef void* (*fn_action_parse_t)(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule);
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule);
 
 typedef struct {
     const ngx_str_t name;

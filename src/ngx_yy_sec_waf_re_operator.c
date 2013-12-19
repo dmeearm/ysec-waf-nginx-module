@@ -6,7 +6,7 @@
 ** Copyright (C) YY, Inc.
 */
 
-#include "ngx_yy_sec_waf.h"
+#include "ngx_yy_sec_waf_re.h"
 
 /*
 ** @description: This function is called to parse str of yy sec waf.
@@ -18,11 +18,9 @@
 
 static void *
 yy_sec_waf_parse_str(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *str;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -48,10 +46,8 @@ yy_sec_waf_parse_str(ngx_conf_t *cf,
 
 static ngx_int_t
 yy_sec_waf_execute_str(ngx_http_request_t *r,
-    ngx_str_t *str, void *rule_p)
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule)
 {
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
-
     if (str == NULL || str->data == NULL) {
         return NGX_ERROR;
     }
@@ -76,12 +72,10 @@ yy_sec_waf_execute_str(ngx_http_request_t *r,
 
 static void *
 yy_sec_waf_parse_regex(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_regex_compile_t *rgc;
     ngx_str_t            pattern;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     pattern.data = tmp->data + ngx_strlen(REGEX);
     pattern.len = tmp->len - ngx_strlen(REGEX);
@@ -112,11 +106,9 @@ yy_sec_waf_parse_regex(ngx_conf_t *cf,
 
 static ngx_int_t
 yy_sec_waf_execute_regex(ngx_http_request_t *r,
-    ngx_str_t *str, void *rule_p)
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule)
 {
     int rc;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (str == NULL || str->data == NULL) {
         return NGX_ERROR;
@@ -146,11 +138,9 @@ yy_sec_waf_execute_regex(ngx_http_request_t *r,
 
 static void *
 yy_sec_waf_parse_eq(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *eq;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -176,10 +166,8 @@ yy_sec_waf_parse_eq(ngx_conf_t *cf,
 
 static ngx_int_t
 yy_sec_waf_execute_eq(ngx_http_request_t *r,
-    ngx_str_t *str, void *rule_p)
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule)
 {
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
-
     if (str == NULL || str->data == NULL) {
         return NGX_ERROR;
     }
@@ -203,11 +191,9 @@ yy_sec_waf_execute_eq(ngx_http_request_t *r,
 
 static void *
 yy_sec_waf_parse_gt(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *gt;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -233,10 +219,8 @@ yy_sec_waf_parse_gt(ngx_conf_t *cf,
 
 static ngx_int_t
 yy_sec_waf_execute_gt(ngx_http_request_t *r,
-    ngx_str_t *str, void *rule_p)
+    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule)
 {
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
-
     if (str == NULL || str->data == NULL) {
         return NGX_ERROR;
     }

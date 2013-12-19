@@ -16,8 +16,6 @@
 #include <ngx_event.h>
 #include <ngx_string.h>
 
-#include "ngx_yy_sec_waf_re.h"
-
 int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 
 u_char *ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n);
@@ -44,10 +42,9 @@ typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t op_name;
     ngx_flag_t op_negative;
 
-    re_var_metadata *var_metadata;
-    re_op_metadata *op_metadata;
-    re_tfns_metadata *tfn_metadata;
-    re_action_metadata *action_metadata;
+    ngx_str_t variable;
+    ngx_str_t operator;
+    ngx_str_t tfn;
 
     /* level flags*/
     ngx_flag_t    action_level;

@@ -6,7 +6,7 @@
 ** Copyright (C) YY, Inc.
 */
 
-#include "ngx_yy_sec_waf.h"
+#include "ngx_yy_sec_waf_re.h"
 
 static yy_sec_waf_re_t *rule_engine;
 
@@ -194,9 +194,16 @@ static ngx_int_t
 yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
     ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
-    ngx_int_t rc;
+    ngx_int_t        rc;
+    re_op_metadata  *op_metadata;
 
-    rc = rule->op_metadata->execute(r, str, rule);
+    op_metadata = yy_sec_waf_re_resolve_operator_in_hash(&rule->operator);
+
+    if (op_metadata == NULL) {
+        return NGX_ERROR;
+    }
+
+    rc = op_metadata->execute(r, str, rule);
 
     if ((rc == RULE_MATCH && !rule->op_negative)
         || (rc == RULE_NO_MATCH && rule->op_negative)) {
@@ -267,26 +274,33 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_int_t                   rc;
     ngx_http_variable_value_t   vv;
     ngx_str_t                  *var;
+    re_var_metadata            *var_metadata;
+    re_tfns_metadata           *tfn_metadata;
 
-	if ((rule == NULL) ||
-        (rule->var_metadata == NULL) ||
-        (rule->var_metadata->generate == NULL))
+	if (rule == NULL)
 		return NGX_AGAIN;
 
+    var_metadata = yy_sec_waf_re_resolve_variable_in_hash(&rule->variable); 
 
-	rc = rule->var_metadata->generate(rule, ctx, &vv);
+    if (var_metadata == NULL) {
+        return NGX_AGAIN;
+    }
+
+	rc = var_metadata->generate(rule, ctx, &vv);
 
 	if (rc == NGX_ERROR || vv.not_found) {
         return NGX_AGAIN;
 	}
-	
-	if (rule->tfn_metadata != NULL) {
-		rc = rule->tfn_metadata->execute(&vv);
-		if (rc == NGX_ERROR) {
-			ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
-			return NGX_ERROR;
-		}
-	}
+
+    tfn_metadata = yy_sec_waf_re_resolve_tfn_in_hash(&rule->tfn); 
+
+    if (tfn_metadata != NULL) {
+        rc = tfn_metadata->execute(&vv);
+        if (rc == NGX_ERROR) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
+            return NGX_ERROR;
+        }
+    }
 
     var = ngx_palloc(r->pool, sizeof(ngx_str_t));
     if (var == NULL) {
@@ -422,7 +436,10 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     u_char           *pos;
     ngx_str_t        *value, variable, operator, action;
     ngx_http_yy_sec_waf_rule_t rule, *rule_p;
-    ngx_shm_zone_t *shm_zone;
+    ngx_shm_zone_t     *shm_zone;
+    re_var_metadata    *var_metadata;
+    re_op_metadata     *op_metadata;
+    re_action_metadata *action_metadata;
 
     value = cf->args->elts;
     ngx_memset(&rule, 0, sizeof(ngx_http_yy_sec_waf_rule_t));
@@ -437,10 +454,11 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
     }
 
+    ngx_memcpy(&rule.variable, &variable, sizeof(ngx_str_t));
 
-    rule.var_metadata = yy_sec_waf_re_resolve_variable_in_hash(&variable); 
+    var_metadata = yy_sec_waf_re_resolve_variable_in_hash(&variable); 
 
-    if (rule.var_metadata == NULL) {
+    if (var_metadata == NULL) {
         ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve variable");
         return NGX_CONF_ERROR;
     }
@@ -455,10 +473,11 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
 
     pos = ngx_strlchr(operator.data, operator.data+operator.len, ':');
     operator.len = pos-operator.data;
+    ngx_memcpy(&rule.operator, &operator, sizeof(ngx_str_t));
 
-    rule.op_metadata = yy_sec_waf_re_resolve_operator_in_hash(&operator);
+    op_metadata = yy_sec_waf_re_resolve_operator_in_hash(&operator);
 
-    if (rule.op_metadata == NULL) {
+    if (op_metadata == NULL) {
         ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve operator");
         return NGX_CONF_ERROR;
     }
@@ -468,7 +487,7 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         operator.len--;
     }
 
-    if (rule.op_metadata->parse(cf, &operator, &rule) != NGX_CONF_OK) {
+    if (op_metadata->parse(cf, &operator, &rule) != NGX_CONF_OK) {
         ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%V'", &operator);
         return NGX_CONF_ERROR;
     }
@@ -479,14 +498,14 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         u_char *pos = ngx_strlchr(action.data, action.data+action.len, ':');
         action.len = pos-action.data;
 
-        rule.action_metadata = yy_sec_waf_re_resolve_action_in_hash(&action);
+        action_metadata = yy_sec_waf_re_resolve_action_in_hash(&action);
 
-        if (rule.action_metadata == NULL) {
+        if (action_metadata == NULL) {
             ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve action");
             return NGX_CONF_ERROR;
         }
 
-        if (rule.action_metadata->parse(cf, &value[n], &rule) != NGX_CONF_OK) {
+        if (action_metadata->parse(cf, &value[n], &rule) != NGX_CONF_OK) {
             ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%V'", &action);
             return NGX_CONF_ERROR;
         }

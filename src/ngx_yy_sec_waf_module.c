@@ -7,6 +7,7 @@
 */
 
 #include "ngx_yy_sec_waf.h"
+#include "ngx_yy_sec_waf_re.h"
 
 static ngx_int_t ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf);
 static ngx_int_t ngx_http_yy_sec_waf_init(ngx_conf_t *cf);

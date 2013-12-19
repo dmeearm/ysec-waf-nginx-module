@@ -6,7 +6,7 @@
 ** Copyright (C) YY, Inc.
 */
 
-#include "ngx_yy_sec_waf.h"
+#include "ngx_yy_sec_waf_re.h"
 
 /*
 ** @description: This function is called to parse gids of yy sec waf.
@@ -18,11 +18,9 @@
 
 static void *
 yy_sec_waf_parse_gids(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *gids;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -49,11 +47,9 @@ yy_sec_waf_parse_gids(ngx_conf_t *cf,
 
 static void *
 yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *rule_id;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -80,11 +76,9 @@ yy_sec_waf_parse_rule_id(ngx_conf_t *cf,
 
 static void *
 yy_sec_waf_parse_msg(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *msg;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -111,11 +105,9 @@ yy_sec_waf_parse_msg(ngx_conf_t *cf,
 
 static void *
 yy_sec_waf_parse_level(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     u_char *tmp_ptr;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     tmp_ptr = (u_char*)tmp->data + ngx_strlen(LEVEL);
 
@@ -154,12 +146,10 @@ yy_sec_waf_parse_level(ngx_conf_t *cf,
 
 static void *
 yy_sec_waf_parse_phase(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
 
     u_char *tmp_ptr;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -202,11 +192,9 @@ yy_sec_waf_parse_phase(ngx_conf_t *cf,
 
 static void *
 yy_sec_waf_parse_tfn(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *tfn;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
@@ -218,7 +206,7 @@ yy_sec_waf_parse_tfn(ngx_conf_t *cf,
     tfn->data = tmp->data + ngx_strlen(TFNS);
     tfn->len = tmp->len - ngx_strlen(TFNS);
 
-    rule->tfn_metadata = yy_sec_waf_re_resolve_tfn_in_hash(tfn);
+    ngx_memcpy(&rule->tfn, tfn, sizeof(ngx_str_t));
 
     return NGX_CONF_OK;
 }
@@ -233,11 +221,9 @@ yy_sec_waf_parse_tfn(ngx_conf_t *cf,
 
 static void *
 yy_sec_waf_parse_chain(ngx_conf_t *cf,
-    ngx_str_t *tmp, void *rule_p)
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
 {
     ngx_str_t *chain;
-
-    ngx_http_yy_sec_waf_rule_t *rule = (ngx_http_yy_sec_waf_rule_t*) rule_p;
 
     if (!rule)
         return NGX_CONF_ERROR;
