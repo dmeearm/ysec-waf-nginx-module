@@ -10,8 +10,7 @@
 
 /*
 ** @description: This function is called to excute urldecode tfs.
-** @para: ngx_str_t *str
-** @para: void *rule
+** @para: ngx_http_variable_value_t *v
 ** @return: RULE_MATCH or RULE_NO_MATCH if failed.
 */
 

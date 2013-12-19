@@ -12,7 +12,7 @@
 ** @description: This function is called to parse str of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *tmp
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
 */
 
@@ -39,8 +39,9 @@ yy_sec_waf_parse_str(ngx_conf_t *cf,
 
 /*
 ** @description: This function is called to excute str operator.
+** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: RULE_MATCH or RULE_NO_MATCH if failed.
 */
 
@@ -66,7 +67,7 @@ yy_sec_waf_execute_str(ngx_http_request_t *r,
 ** @description: This function is called to parse regex of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *tmp
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
 */
 
@@ -99,8 +100,9 @@ yy_sec_waf_parse_regex(ngx_conf_t *cf,
 
 /*
 ** @description: This function is called to excute regex operator.
+** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: RULE_MATCH or RULE_NO_MATCH if failed.
 */
 
@@ -132,7 +134,7 @@ yy_sec_waf_execute_regex(ngx_http_request_t *r,
 ** @description: This function is called to parse eq of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *tmp
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
 */
 
@@ -159,8 +161,9 @@ yy_sec_waf_parse_eq(ngx_conf_t *cf,
 
 /*
 ** @description: This function is called to excute eq operator.
+** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: RULE_MATCH or RULE_NO_MATCH if failed.
 */
 
@@ -185,7 +188,7 @@ yy_sec_waf_execute_eq(ngx_http_request_t *r,
 ** @description: This function is called to parse gt of yy sec waf.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *tmp
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
 */
 
@@ -212,8 +215,9 @@ yy_sec_waf_parse_gt(ngx_conf_t *cf,
 
 /*
 ** @description: This function is called to excute gt operator.
+** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
-** @para: void *rule
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: RULE_MATCH or RULE_NO_MATCH if failed.
 */
 

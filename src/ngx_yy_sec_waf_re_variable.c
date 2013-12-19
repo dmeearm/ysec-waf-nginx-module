@@ -14,9 +14,9 @@ static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1")
 
 /*
 ** @description: This function is called to generate args.
-** @para: void *rule_p
-** @para: void *ctx_p
-** @para: ngx_str_t *var
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_variable_value_t *v
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
@@ -46,9 +46,9 @@ yy_sec_waf_generate_args(ngx_http_yy_sec_waf_rule_t *rule,
 
 /*
 ** @description: This function is called to generate post args count.
-** @para: void *rule_p
-** @para: void *ctx_p
-** @para: ngx_str_t *var
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_variable_value_t *v
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
@@ -74,9 +74,9 @@ yy_sec_waf_generate_post_args_count(ngx_http_yy_sec_waf_rule_t *rule,
 
 /*
 ** @description: This function is called to generate process body error.
-** @para: void *rule_p
-** @para: void *ctx_p
-** @para: ngx_str_t *var
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_variable_value_t *v
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
@@ -99,9 +99,9 @@ yy_sec_waf_generate_process_body_error(ngx_http_yy_sec_waf_rule_t *rule,
 
 /*
 ** @description: This function is called to generate multipart name.
-** @para: void *rule_p
-** @para: void *ctx_p
-** @para: ngx_str_t *var
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_variable_value_t *v
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
@@ -142,9 +142,9 @@ yy_sec_waf_generate_multipart_name(ngx_http_yy_sec_waf_rule_t *rule,
 
 /*
 ** @description: This function is called to generate multipart filename.
-** @para: void *rule_p
-** @para: void *ctx_p
-** @para: ngx_str_t *var
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_variable_value_t *v
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
@@ -185,9 +185,9 @@ yy_sec_waf_generate_multipart_filename(ngx_http_yy_sec_waf_rule_t *rule,
 
 /*
 ** @description: This function is called to generate connection per ip.
-** @para: void *rule_p
-** @para: void *ctx_p
-** @para: ngx_str_t *var
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_variable_value_t *v
 ** @return: static int.
 */
 
@@ -213,9 +213,9 @@ yy_sec_waf_generate_conn_per_ip(ngx_http_yy_sec_waf_rule_t *rule,
 
 /*
 ** @description: This function is called to generate inner variable.
-** @para: void *rule_p
-** @para: void *ctx_p
-** @para: ngx_str_t *var
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_variable_value_t *v
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 

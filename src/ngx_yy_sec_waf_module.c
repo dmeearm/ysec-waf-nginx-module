@@ -6,7 +6,6 @@
 ** Copyright (C) YY, Inc.
 */
 
-#include "ngx_yy_sec_waf.h"
 #include "ngx_yy_sec_waf_re.h"
 
 static ngx_int_t ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf);
@@ -218,7 +217,7 @@ ngx_http_yy_sec_waf_preconfiguration(ngx_conf_t *cf)
 
 /*
 ** @description: This function is called to filter header.
-** @para: ngx_conf_t *cf
+** @para: ngx_http_request_t *r
 ** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
 */
 
@@ -256,7 +255,8 @@ ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
 
 /*
 ** @description: This function is called to filter body.
-** @para: ngx_conf_t *cf
+** @para: ngx_http_request_t *r
+** @para: ngx_chain_t *in
 ** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
 */
 
@@ -436,7 +436,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 ** - Will set-up flags to tell that parsing can be done,
 ** - and then run the core phases again
 ** @para: ngx_http_request_t *r
-** @return: void
+** @return: static void
 */
 
 static void 
