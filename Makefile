@@ -82,3 +82,4 @@ test:
 
 install:
 	cd $(shell pwd)/../../../../ && make install
+	cp conf/yy_sec_waf.conf /usr/local/nginx/conf/yy_sec_waf.conf
