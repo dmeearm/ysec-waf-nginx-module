@@ -296,6 +296,9 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         return NGX_DECLINED;
     }
 
+	/* If we are here that means the mode is NEXT_RULE, which
+	** then means we have done processing any chains.
+	*/
     mode = NEXT_RULE;
     rule = rule_array->elts;
     rule_num = rule_array->nelts;
@@ -304,19 +307,18 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 
     for (i=0; i < rule_num; i++) {
 
+		/* NEXT_CHAIN is used when one of the rules in a chain
+		**  fails to match and then we need to skip the remaining
+		**  rules in that chain in order to get to the next
+		**  rule that can execute.
+		*/
+
         if (mode == NEXT_CHAIN) {
-            if (rule[i].is_chain == 1) {
-                mode = NEXT_CHAIN;
+            if (rule[i].is_chain == 0) {
+                mode = NEXT_RULE;
             }
 
-            mode = NEXT_RULE;
             continue;
-        }
-
-        if (mode == NEXT_RULE) {
-            if (rule[i].is_chain == 1) {
-                mode = NEXT_CHAIN;
-            }
         }
 
         if (rule[i].var_metadata == NULL || rule[i].var_metadata->generate == NULL)
@@ -348,13 +350,21 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
         } else if (rc == RULE_MATCH) {
             if (rule[i].is_chain == 1) {
                 mode = NEXT_RULE;
+                continue;
             }
 
             goto MATCH;
         } else if (rc == RULE_NO_MATCH) {
+        
             if (rule[i].is_chain == 1) {
+				/* If the current rule is part of a chain then
+                         ** we need to skip over all the rules in the chain.
+                         */
                 mode = NEXT_CHAIN;
             } else {
+                /* This rule is not part of a chain so we simply
+                         ** move to the next rule.
+                         */
                 mode = NEXT_RULE;
             }
 
