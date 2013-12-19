@@ -253,6 +253,53 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
 }
 
 /*
+** @description: This function is called to process rule for yy sec waf.
+** @para: ngx_http_request_t *r
+** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
+** @para: ngx_http_request_ctx_t *ctx
+** @return: RULE_MATCH or RULE_NO_MATCH if failed.
+*/
+
+ngx_int_t
+yy_sec_waf_re_process_rule(ngx_http_request_t *r,
+    ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
+{
+    ngx_int_t                   rc;
+    ngx_http_variable_value_t   vv;
+    ngx_str_t                  *var;
+
+	if ((rule == NULL) ||
+        (rule->var_metadata == NULL) ||
+        (rule->var_metadata->generate == NULL))
+		return NGX_AGAIN;
+
+
+	rc = rule->var_metadata->generate(rule, ctx, &vv);
+
+	if (rc == NGX_ERROR || vv.not_found) {
+        return NGX_AGAIN;
+	}
+	
+	if (rule->tfn_metadata != NULL) {
+		rc = rule->tfn_metadata->execute(&vv);
+		if (rc == NGX_ERROR) {
+			ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
+			return NGX_ERROR;
+		}
+	}
+
+    var = ngx_palloc(r->pool, sizeof(ngx_str_t));
+    if (var == NULL) {
+        return NGX_ERROR;
+    }
+
+	var->data = vv.data;
+	var->len = vv.len;
+
+    return yy_sec_waf_re_execute_operator(r, var, rule, ctx);
+}
+
+/*
 ** @description: This function is called to process normal rules for yy sec waf.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_yy_sec_waf_loc_conf_t *cf
@@ -266,10 +313,8 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 {
     ngx_uint_t                  i, rule_num;
     ngx_int_t                   rc, mode;
-    ngx_str_t                   var;
-    ngx_http_yy_sec_waf_rule_t *rule;
-    ngx_http_variable_value_t   vv;
     ngx_array_t                *rule_array;
+    ngx_http_yy_sec_waf_rule_t *rule;
 
 	if (ctx->cf == NULL) {
 		return NGX_ERROR;
@@ -321,40 +366,21 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
             continue;
         }
 
-        if (rule[i].var_metadata == NULL || rule[i].var_metadata->generate == NULL)
-            continue;
-
-        ngx_memzero(&vv, sizeof(vv));
-        rc = rule[i].var_metadata->generate(&rule[i], ctx, &vv);
-
-        if (rc == NGX_ERROR || vv.not_found) {
-            continue;
-        }
-
-        if (rule[i].tfn_metadata != NULL) {
-            rc = rule[i].tfn_metadata->execute(&vv);
-            if (rc == NGX_ERROR) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
-                return NGX_ERROR;
-            }
-        }
-
-        var.data = vv.data;
-        var.len = vv.len;
-
-        rc = yy_sec_waf_re_execute_operator(r, &var, &rule[i], ctx);
+        rc = yy_sec_waf_re_process_rule(r, &rule[i], ctx);
 
         if (rc == NGX_ERROR) {
+
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute operator");
             return rc;
         } else if (rc == RULE_MATCH) {
+
             if (rule[i].is_chain == 1) {
                 mode = NEXT_RULE;
                 continue;
             }
 
             goto MATCH;
-        } else if (rc == RULE_NO_MATCH) {
+        } else if (rc == RULE_NO_MATCH || rc == NGX_AGAIN) {
         
             if (rule[i].is_chain == 1) {
 				/* If the current rule is part of a chain then

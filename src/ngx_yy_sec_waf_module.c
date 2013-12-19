@@ -194,7 +194,7 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->enabled, prev->enabled, 1);
 
-    ngx_conf_merge_value(conf->conn_processor, prev->conn_processor, 1);
+    ngx_conf_merge_value(conf->conn_processor, prev->conn_processor, 0);
 
     ngx_conf_merge_bitmask_value(conf->http_method, prev->http_method, 0);
 
