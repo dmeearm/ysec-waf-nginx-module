@@ -240,7 +240,7 @@ ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
 
     if (!cf->enabled) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
-        return NGX_DECLINED;
+        return ngx_http_next_header_filter(r);
     }
 
     if (!ctx->process_done) {
@@ -278,7 +278,7 @@ ngx_http_yy_sec_waf_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (!cf->enabled) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
-        return NGX_DECLINED;
+        return ngx_http_next_body_filter(r, in);
     }
 
     if (!ctx->process_done) {
