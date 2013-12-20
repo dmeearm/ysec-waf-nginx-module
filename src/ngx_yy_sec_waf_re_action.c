@@ -206,7 +206,7 @@ yy_sec_waf_parse_tfn(ngx_conf_t *cf,
     tfn->data = tmp->data + ngx_strlen(TFNS);
     tfn->len = tmp->len - ngx_strlen(TFNS);
 
-    ngx_memcpy(&rule->tfn, tfn, sizeof(ngx_str_t));
+    rule->tfn_metadata = yy_sec_waf_re_resolve_tfn_in_hash(tfn);
 
     return NGX_CONF_OK;
 }

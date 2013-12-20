@@ -39,12 +39,12 @@ typedef struct ngx_http_yy_sec_waf_rule {
     ngx_int_t  phase;
     ngx_int_t  var_index;
 
-    ngx_str_t op_name;
     ngx_flag_t op_negative;
 
-    ngx_str_t variable;
-    ngx_str_t operator;
-    ngx_str_t tfn;
+    void *var_metadata;
+    void *op_metadata;
+    void *action_metadata;
+    void *tfn_metadata;
 
     /* level flags*/
     ngx_flag_t    action_level;
