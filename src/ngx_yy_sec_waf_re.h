@@ -59,13 +59,13 @@ typedef struct {
     fn_op_execute_t execute;
 } re_op_metadata;
 
-typedef int (*fn_var_generate_t)(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data);
+typedef int (*fn_var_generate_t)(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 
 typedef struct {
     ngx_str_t         name;
     fn_var_generate_t generate;
-    ngx_int_t         data;
+    uintptr_t         data;
     ngx_uint_t        flags;
     ngx_uint_t        index;
 } re_var_metadata;

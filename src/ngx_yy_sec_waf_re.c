@@ -285,7 +285,7 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
         var_metadata->data = rule->var_index;
     }
 
-    rc = var_metadata->generate(ctx, &vv, var_metadata->data);
+    rc = var_metadata->generate(r, &vv, var_metadata->data);
 
     if (rc == NGX_ERROR || vv.not_found) {
         return NGX_AGAIN;

@@ -14,15 +14,25 @@ static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1")
 
 /*
 ** @description: This function is called to generate args.
-** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
+** @para: uintptr_t data
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 static int
-yy_sec_waf_generate_args(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data)
+yy_sec_waf_generate_args(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
+    ngx_http_request_ctx_t    *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
     if (ctx->phase & REQUEST_HEADER_PHASE) {
         v->data = ctx->args.data;
         v->len = ctx->args.len;
@@ -41,16 +51,25 @@ yy_sec_waf_generate_args(ngx_http_request_ctx_t *ctx,
 
 /*
 ** @description: This function is called to generate post args count.
-** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
+** @para: uintptr_t data
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 static int
-yy_sec_waf_generate_post_args_count(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data)
+yy_sec_waf_generate_post_args_count(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char    *p;
+    u_char                    *p;
+    ngx_http_request_ctx_t    *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
 
     p = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->post_args_count);
 
@@ -66,15 +85,25 @@ yy_sec_waf_generate_post_args_count(ngx_http_request_ctx_t *ctx,
 
 /*
 ** @description: This function is called to generate process body error.
-** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
+** @para: uintptr_t data
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 static int
-yy_sec_waf_generate_process_body_error(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data)
+yy_sec_waf_generate_process_body_error(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
+    ngx_http_request_ctx_t    *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
     if (ctx->process_body_error == 1) {
         *v = yy_sec_waf_true_value;
     } else {
@@ -86,18 +115,27 @@ yy_sec_waf_generate_process_body_error(ngx_http_request_ctx_t *ctx,
 
 /*
 ** @description: This function is called to generate multipart name.
-** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
+** @para: uintptr_t data
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 static int
-yy_sec_waf_generate_multipart_name(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data)
+yy_sec_waf_generate_multipart_name(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_uint_t i;
-    ngx_str_t *var;
-    u_char    *p;
+    ngx_uint_t                 i;
+    ngx_str_t                 *var;
+    u_char                    *p;
+    ngx_http_request_ctx_t    *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
 
     var = ctx->multipart_name.elts;
 
@@ -124,18 +162,27 @@ yy_sec_waf_generate_multipart_name(ngx_http_request_ctx_t *ctx,
 
 /*
 ** @description: This function is called to generate multipart filename.
-** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
+** @para: uintptr_t data
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 static int
-yy_sec_waf_generate_multipart_filename(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data)
+yy_sec_waf_generate_multipart_filename(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_uint_t i;
-    ngx_str_t *var;
-    u_char    *p;
+    ngx_uint_t                 i;
+    ngx_str_t                 *var;
+    u_char                    *p;
+    ngx_http_request_ctx_t    *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
 
     var = ctx->multipart_filename.elts;
 
@@ -162,16 +209,25 @@ yy_sec_waf_generate_multipart_filename(ngx_http_request_ctx_t *ctx,
 
 /*
 ** @description: This function is called to generate connection per ip.
-** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
+** @para: uintptr_t data
 ** @return: static int.
 */
 
 static int
-yy_sec_waf_generate_conn_per_ip(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data)
+yy_sec_waf_generate_conn_per_ip(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char *p;
+    u_char                    *p;
+    ngx_http_request_ctx_t    *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
 
     p = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->conn_per_ip);
 
@@ -187,18 +243,27 @@ yy_sec_waf_generate_conn_per_ip(ngx_http_request_ctx_t *ctx,
 
 /*
 ** @description: This function is called to generate inner variable.
-** @para: ngx_http_request_ctx_t *ctx
+** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
+** @para: uintptr_t data
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
 static int
-yy_sec_waf_generate_inner_var(ngx_http_request_ctx_t *ctx,
-    ngx_http_variable_value_t *v, ngx_int_t data)
+yy_sec_waf_generate_inner_var(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_variable_value_t *vv;
-    
-    if (data != NGX_CONF_UNSET) {
+    ngx_http_request_ctx_t    *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
+
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    if ((ngx_int_t)data != NGX_ERROR) {
         vv = ngx_http_get_indexed_variable(ctx->r, data);
     
         if (vv == NULL || vv->not_found) {
