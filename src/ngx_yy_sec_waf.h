@@ -21,6 +21,11 @@ int ngx_yy_sec_waf_unescape(ngx_str_t *str);
 u_char *ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n);
 u_char *ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n);
 
+#define REQUEST_HEADER_PHASE    0x01
+#define REQUEST_BODY_PHASE      0x10
+#define RESPONSE_HEADER_PHASE  0x100
+#define RESPONSE_BODY_PHASE   0x1000
+
 extern ngx_module_t ngx_http_yy_sec_waf_module;
 
 extern ngx_atomic_t	  *request_matched;

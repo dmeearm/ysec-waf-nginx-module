@@ -38,11 +38,6 @@
 #define RULE_MATCH              1
 #define RULE_NO_MATCH           2
 
-#define REQUEST_HEADER_PHASE    0x01
-#define REQUEST_BODY_PHASE      0x10
-#define RESPONSE_HEADER_PHASE  0x100
-#define RESPONSE_BODY_PHASE   0x1000
-
 #define UNCOMMON_CONTENT_TYPE     10
 #define UNCOMMON_FILENAME         11
 #define UNCOMMON_FILENAME_POSTFIX 12
