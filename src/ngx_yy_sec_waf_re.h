@@ -30,10 +30,10 @@
 #define BLOCK "block"
 #define ALLOW "allow"
 
-#define ACTION_NONE    0x0
-#define ACTION_LOG    0x01
-#define ACTION_BLOCK  0x10
-#define ACTION_ALLOW 0x100
+#define ACTION_NONE    0
+#define ACTION_LOG     1
+#define ACTION_BLOCK   2
+#define ACTION_ALLOW   4
 
 #define RULE_MATCH              1
 #define RULE_NO_MATCH           2
