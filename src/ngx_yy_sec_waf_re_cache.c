@@ -1,6 +1,6 @@
 /*
 ** @file: ngx_yy_sec_waf_re_cache.c
-** @description: This is the rule engine's actions for yy sec waf.
+** @description: This is the rule engine's caches for yy sec waf.
 ** @author: dw_liqi1<liqi1@yy.com>
 ** @date: 2013.12.12
 ** Copyright (C) YY, Inc.

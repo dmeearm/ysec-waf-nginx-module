@@ -3,7 +3,7 @@
 
 /*
 ** @file: ngx_yy_sec_waf_re.h
-** @description: This is header file for the rule rule engine of yy sec waf.
+** @description: This is header file for the rule engine of yy sec waf.
 ** @author: dw_liqi1<liqi1@yy.com>
 ** @date: 2013.11.14
 ** Copyright (C) YY, Inc.
