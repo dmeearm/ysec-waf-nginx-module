@@ -21,8 +21,8 @@ static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1")
 */
 
 static int
-yy_sec_waf_generate_args(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
+yy_sec_waf_generate_args(ngx_http_request_ctx_t *ctx,
+    ngx_http_variable_value_t *v, ngx_int_t data)
 {
     if (ctx->phase & REQUEST_HEADER_PHASE) {
         v->data = ctx->args.data;
@@ -49,8 +49,8 @@ yy_sec_waf_generate_args(ngx_http_yy_sec_waf_rule_t *rule,
 */
 
 static int
-yy_sec_waf_generate_post_args_count(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
+yy_sec_waf_generate_post_args_count(ngx_http_request_ctx_t *ctx,
+    ngx_http_variable_value_t *v, ngx_int_t data)
 {
     u_char    *p;
 
@@ -75,8 +75,8 @@ yy_sec_waf_generate_post_args_count(ngx_http_yy_sec_waf_rule_t *rule,
 */
 
 static int
-yy_sec_waf_generate_process_body_error(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
+yy_sec_waf_generate_process_body_error(ngx_http_request_ctx_t *ctx,
+    ngx_http_variable_value_t *v, ngx_int_t data)
 {
     if (ctx->process_body_error == 1) {
         *v = yy_sec_waf_true_value;
@@ -96,8 +96,8 @@ yy_sec_waf_generate_process_body_error(ngx_http_yy_sec_waf_rule_t *rule,
 */
 
 static int
-yy_sec_waf_generate_multipart_name(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
+yy_sec_waf_generate_multipart_name(ngx_http_request_ctx_t *ctx,
+    ngx_http_variable_value_t *v, ngx_int_t data)
 {
     ngx_uint_t i;
     ngx_str_t *var;
@@ -135,8 +135,8 @@ yy_sec_waf_generate_multipart_name(ngx_http_yy_sec_waf_rule_t *rule,
 */
 
 static int
-yy_sec_waf_generate_multipart_filename(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
+yy_sec_waf_generate_multipart_filename(ngx_http_request_ctx_t *ctx,
+    ngx_http_variable_value_t *v, ngx_int_t data)
 {
     ngx_uint_t i;
     ngx_str_t *var;
@@ -174,8 +174,8 @@ yy_sec_waf_generate_multipart_filename(ngx_http_yy_sec_waf_rule_t *rule,
 */
 
 static int
-yy_sec_waf_generate_conn_per_ip(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
+yy_sec_waf_generate_conn_per_ip(ngx_http_request_ctx_t *ctx,
+    ngx_http_variable_value_t *v, ngx_int_t data)
 {
     u_char *p;
 
@@ -200,13 +200,13 @@ yy_sec_waf_generate_conn_per_ip(ngx_http_yy_sec_waf_rule_t *rule,
 */
 
 static int
-yy_sec_waf_generate_inner_var(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
+yy_sec_waf_generate_inner_var(ngx_http_request_ctx_t *ctx,
+    ngx_http_variable_value_t *v, ngx_int_t data)
 {
     ngx_http_variable_value_t *vv;
     
-    if (rule->var_index != NGX_CONF_UNSET) {
-        vv = ngx_http_get_indexed_variable(ctx->r, rule->var_index);
+    if (data != NGX_CONF_UNSET) {
+        vv = ngx_http_get_indexed_variable(ctx->r, data);
     
         if (vv == NULL || vv->not_found) {
             return NGX_ERROR;

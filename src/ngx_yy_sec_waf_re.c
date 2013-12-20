@@ -279,11 +279,17 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
 
     var_metadata = (re_var_metadata*) rule->var_metadata;
 
-	rc = var_metadata->generate(rule, ctx, &vv, var_metadata->data);
+    /* Little trick in data to avoid transporting rule as args for generate function.*/
+    if (ngx_strncasecmp(var_metadata->name.data, (u_char*) "$",
+        var_metadata->name.len) == 0) {
+        var_metadata->data = rule->var_index;
+    }
 
-	if (rc == NGX_ERROR || vv.not_found) {
+    rc = var_metadata->generate(ctx, &vv, var_metadata->data);
+
+    if (rc == NGX_ERROR || vv.not_found) {
         return NGX_AGAIN;
-	}
+    }
 
     if (rule->tfn_metadata != NULL) {
 
