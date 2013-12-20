@@ -310,8 +310,6 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
 	var->data = vv.data;
 	var->len = vv.len;
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] var:%V", var);
-
     return yy_sec_waf_re_execute_operator(r, var, rule, ctx);
 }
 
