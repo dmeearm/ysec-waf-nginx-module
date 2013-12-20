@@ -13,14 +13,14 @@ static yy_sec_waf_re_t *rule_engine;
 /*
 ** @description: This function is called to resolve variables in hash.
 ** @para: ngx_str_t *variable
-** @return: static re_var_metadata *
+** @return: static ngx_http_variable_t *
 */
 
-static re_var_metadata *
+static ngx_http_variable_t *
 yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable)
 {
-    ngx_uint_t       key;
-    re_var_metadata *metadata;
+    ngx_uint_t           key;
+    ngx_http_variable_t *metadata;
 
     if (variable == NULL) {
         return NULL;
@@ -31,7 +31,7 @@ yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable)
         ngx_strlow(variable->data, variable->data, variable->len);
     }
 
-    metadata = (re_var_metadata *)ngx_hash_find(
+    metadata = (ngx_http_variable_t *)ngx_hash_find(
         &rule_engine->variables_in_hash, key, variable->data, variable->len);
 
     return metadata;
@@ -271,13 +271,13 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_int_t                   rc;
     ngx_http_variable_value_t   vv;
     ngx_str_t                  *var;
-    re_var_metadata            *var_metadata;
+    ngx_http_variable_t        *var_metadata;
     re_tfns_metadata           *tfn_metadata;
 
 	if (rule == NULL || rule->var_metadata == NULL)
 		return NGX_AGAIN;
 
-    var_metadata = (re_var_metadata*) rule->var_metadata;
+    var_metadata = (ngx_http_variable_t*) rule->var_metadata;
 
     /* Little trick in data to avoid transporting rule as args for generate function.*/
     if (ngx_strncasecmp(var_metadata->name.data, (u_char*) "$",
@@ -285,7 +285,7 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
         var_metadata->data = rule->var_index;
     }
 
-    rc = var_metadata->generate(r, &vv, var_metadata->data);
+    rc = var_metadata->get_handler(r, &vv, var_metadata->data);
 
     if (rc == NGX_ERROR || vv.not_found) {
         return NGX_AGAIN;

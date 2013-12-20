@@ -20,7 +20,7 @@ static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1")
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static int
+static ngx_int_t
 yy_sec_waf_generate_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -57,7 +57,7 @@ yy_sec_waf_generate_args(ngx_http_request_t *r,
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static int
+static ngx_int_t
 yy_sec_waf_generate_post_args_count(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -91,7 +91,7 @@ yy_sec_waf_generate_post_args_count(ngx_http_request_t *r,
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static int
+static ngx_int_t
 yy_sec_waf_generate_process_body_error(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -121,7 +121,7 @@ yy_sec_waf_generate_process_body_error(ngx_http_request_t *r,
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static int
+static ngx_int_t
 yy_sec_waf_generate_multipart_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -168,7 +168,7 @@ yy_sec_waf_generate_multipart_name(ngx_http_request_t *r,
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static int
+static ngx_int_t
 yy_sec_waf_generate_multipart_filename(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -212,10 +212,10 @@ yy_sec_waf_generate_multipart_filename(ngx_http_request_t *r,
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
-** @return: static int.
+** @return: static ngx_int_t.
 */
 
-static int
+static ngx_int_t
 yy_sec_waf_generate_conn_per_ip(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -249,7 +249,7 @@ yy_sec_waf_generate_conn_per_ip(ngx_http_request_t *r,
 ** @return: NGX_OK or NGX_ERROR if failed.
 */
 
-static int
+static ngx_int_t
 yy_sec_waf_generate_inner_var(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -276,30 +276,30 @@ yy_sec_waf_generate_inner_var(ngx_http_request_t *r,
     return NGX_OK;
 }
 
-static re_var_metadata var_metadata[] = {
+static ngx_http_variable_t var_metadata[] = {
 
-    { ngx_string("ARGS"), yy_sec_waf_generate_args,
+    { ngx_string("ARGS"), NULL, yy_sec_waf_generate_args,
       0, 0, 0 },
 
-    { ngx_string("POST_ARGS_COUNT"), yy_sec_waf_generate_post_args_count,
+    { ngx_string("POST_ARGS_COUNT"), NULL, yy_sec_waf_generate_post_args_count,
       0, 0, 0 },
 
-    { ngx_string("PROCESS_BODY_ERROR"), yy_sec_waf_generate_process_body_error,
+    { ngx_string("PROCESS_BODY_ERROR"), NULL, yy_sec_waf_generate_process_body_error,
       0, 0, 0 },
 
-    { ngx_string("MULTIPART_NAME"), yy_sec_waf_generate_multipart_name,
+    { ngx_string("MULTIPART_NAME"), NULL, yy_sec_waf_generate_multipart_name,
       offsetof(ngx_http_request_ctx_t, multipart_name), 0, 0 },
 
-    { ngx_string("MULTIPART_FILENAME"), yy_sec_waf_generate_multipart_filename,
+    { ngx_string("MULTIPART_FILENAME"), NULL, yy_sec_waf_generate_multipart_filename,
       offsetof(ngx_http_request_ctx_t, multipart_filename), 0, 0 },
 
-    { ngx_string("CONN_PER_IP"), yy_sec_waf_generate_conn_per_ip,
+    { ngx_string("CONN_PER_IP"), NULL, yy_sec_waf_generate_conn_per_ip,
       0, 0, 0 },
 
-    { ngx_string("$"), yy_sec_waf_generate_inner_var,
+    { ngx_string("$"), NULL, yy_sec_waf_generate_inner_var,
       0, 0, 0 },
 
-    { ngx_null_string, NULL,
+    { ngx_null_string, NULL, NULL,
       0, 0, 0 }
 };
 
@@ -314,10 +314,10 @@ ngx_int_t
 ngx_http_yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf,
     ngx_hash_t *variables_in_hash)
 {
-    ngx_array_t         variables;
-    ngx_hash_key_t     *hk;
-    ngx_hash_init_t     hash;
-    re_var_metadata    *metadata;
+    ngx_array_t          variables;
+    ngx_hash_key_t      *hk;
+    ngx_hash_init_t      hash;
+    ngx_http_variable_t *metadata;
 
     if (ngx_array_init(&variables, cf->temp_pool, 32, sizeof(ngx_hash_key_t))
         != NGX_OK)
