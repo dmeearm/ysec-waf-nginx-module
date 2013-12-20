@@ -219,20 +219,28 @@ yy_sec_waf_generate_inner_var(ngx_http_request_ctx_t *ctx,
 }
 
 static re_var_metadata var_metadata[] = {
+
     { ngx_string("ARGS"), yy_sec_waf_generate_args,
       0, 0, 0 },
+
     { ngx_string("POST_ARGS_COUNT"), yy_sec_waf_generate_post_args_count,
       0, 0, 0 },
+
     { ngx_string("PROCESS_BODY_ERROR"), yy_sec_waf_generate_process_body_error,
       0, 0, 0 },
+
     { ngx_string("MULTIPART_NAME"), yy_sec_waf_generate_multipart_name,
       offsetof(ngx_http_request_ctx_t, multipart_name), 0, 0 },
+
     { ngx_string("MULTIPART_FILENAME"), yy_sec_waf_generate_multipart_filename,
       offsetof(ngx_http_request_ctx_t, multipart_filename), 0, 0 },
+
     { ngx_string("CONN_PER_IP"), yy_sec_waf_generate_conn_per_ip,
       0, 0, 0 },
+
     { ngx_string("$"), yy_sec_waf_generate_inner_var,
       0, 0, 0 },
+
     { ngx_null_string, NULL,
       0, 0, 0 }
 };
