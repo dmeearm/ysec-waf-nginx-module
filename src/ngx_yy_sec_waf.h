@@ -76,16 +76,16 @@ typedef struct {
     ngx_rbtree_t cache_rbtree;
     ngx_rbtree_node_t cache_sentinel;
 
-    ngx_str_t *args;
+    ngx_str_t  args;
 
-    ngx_str_t *post_args;
+    ngx_str_t  post_args;
     ngx_uint_t post_args_count;
 
-    u_char *boundary;
-    ngx_uint_t boundary_len;
-    ngx_array_t *multipart_filename;
-    ngx_array_t *multipart_name;
-    ngx_array_t *content_type;
+    u_char     *boundary;
+    ngx_uint_t  boundary_len;
+    ngx_array_t multipart_filename;
+    ngx_array_t multipart_name;
+    ngx_array_t content_type;
 
     ngx_int_t  process_body_error;
     ngx_str_t  process_body_error_msg;

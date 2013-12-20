@@ -286,7 +286,7 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
         return NGX_AGAIN;
     }
 
-	rc = var_metadata->generate(rule, ctx, &vv);
+	rc = var_metadata->generate(rule, ctx, &vv, var_metadata->data);
 
 	if (rc == NGX_ERROR || vv.not_found) {
         return NGX_AGAIN;
@@ -309,6 +309,8 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
 
 	var->data = vv.data;
 	var->len = vv.len;
+
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] var:%V", var);
 
     return yy_sec_waf_re_execute_operator(r, var, rule, ctx);
 }

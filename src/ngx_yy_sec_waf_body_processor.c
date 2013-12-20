@@ -96,13 +96,13 @@ ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
         buffer++;
     }
 
-    ctx->post_args->len = str->len;
-    ctx->post_args->data = ngx_pcalloc(r->pool, str->len);
-    if (ctx->post_args->data == NULL) {
+    ctx->post_args.len = str->len;
+    ctx->post_args.data = ngx_palloc(r->pool, str->len);
+    if (ctx->post_args.data == NULL) {
         return NGX_ERROR;
     }
 
-    ngx_memcpy(ctx->post_args->data, str->data, str->len);
+    ngx_memcpy(ctx->post_args.data, str->data, str->len);
     ctx->post_args_count = arg_cnt;
     ctx->post_args_len = str->len;
 
@@ -323,13 +323,13 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
 
         ngx_http_yy_sec_waf_process_disposition(r, full_body->data+idx, line_end, &name, &filename);
 
-        tmp = ngx_array_push(ctx->multipart_filename);
+        tmp = ngx_array_push(&ctx->multipart_filename);
         if (tmp == NULL)
             return NGX_ERROR;
 
         ngx_memcpy(tmp, &filename, sizeof(ngx_str_t));
 
-        tmp = ngx_array_push(ctx->multipart_name);
+        tmp = ngx_array_push(&ctx->multipart_name);
         if (tmp == NULL)
             return NGX_ERROR;
 
@@ -347,7 +347,7 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             content_type.data = line_start + ngx_strlen("content-type: ");
             content_type.len = (line_end - 1) - content_type.data;
 
-            tmp = ngx_array_push(ctx->content_type);
+            tmp = ngx_array_push(&ctx->content_type);
             if (tmp == NULL)
                 return NGX_ERROR;
 

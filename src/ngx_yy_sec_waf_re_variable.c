@@ -22,18 +22,14 @@ static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1")
 
 static int
 yy_sec_waf_generate_args(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (rule == NULL || ctx == NULL || v == NULL) {
-        return NGX_ERROR;
-    }
-
     if (ctx->phase & REQUEST_HEADER_PHASE) {
-        v->data = ctx->args->data;
-        v->len = ctx->args->len;
+        v->data = ctx->args.data;
+        v->len = ctx->args.len;
     } else if (ctx->phase & REQUEST_BODY_PHASE) {
-        v->data = ctx->post_args->data;
-        v->len = ctx->post_args->len;
+        v->data = ctx->post_args.data;
+        v->len = ctx->post_args.len;
     }
 
     v->valid = 1;
@@ -54,20 +50,18 @@ yy_sec_waf_generate_args(ngx_http_yy_sec_waf_rule_t *rule,
 
 static int
 yy_sec_waf_generate_post_args_count(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (rule == NULL || ctx == NULL || v == NULL) {
-        return NGX_ERROR;
-    }
+    u_char    *p;
 
-    u_char *tmp = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->post_args_count);
+    p = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->post_args_count);
 
-    v->len = ngx_strlen(tmp);
+    v->len = ngx_strlen(p);
     v->valid = 1;
     v->no_cacheable = 0;
     v->escape = 0;
     v->not_found = 0;
-    v->data = tmp;
+    v->data = p;
 
     return NGX_OK;
 }
@@ -82,12 +76,8 @@ yy_sec_waf_generate_post_args_count(ngx_http_yy_sec_waf_rule_t *rule,
 
 static int
 yy_sec_waf_generate_process_body_error(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (rule == NULL || ctx == NULL || v == NULL) {
-        return NGX_ERROR;
-    }
-
     if (ctx->process_body_error == 1) {
         *v = yy_sec_waf_true_value;
     } else {
@@ -107,27 +97,23 @@ yy_sec_waf_generate_process_body_error(ngx_http_yy_sec_waf_rule_t *rule,
 
 static int
 yy_sec_waf_generate_multipart_name(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (rule == NULL || ctx == NULL || v == NULL) {
-        return NGX_ERROR;
-    }
-
     ngx_uint_t i;
     ngx_str_t *var;
-    u_char    *tmp;
+    u_char    *p;
 
-    var = ctx->multipart_name->elts;
+    var = ctx->multipart_name.elts;
 
-    for (i = 0; i < ctx->multipart_name->nelts; i++) {
+    for (i = 0; i < ctx->multipart_name.nelts; i++) {
         v->len += var[i].len;
     }
 
     v->data = ngx_palloc(ctx->pool, v->len);
 
-    tmp = v->data;
+    p = v->data;
 
-    for (i = 0; i < ctx->multipart_name->nelts; i++) {
+    for (i = 0; i < ctx->multipart_name.nelts; i++) {
         v->data = ngx_cpymem(v->data, var[i].data, var[i].len);
     }
 
@@ -135,7 +121,7 @@ yy_sec_waf_generate_multipart_name(ngx_http_yy_sec_waf_rule_t *rule,
     v->no_cacheable = 0;
     v->escape = 0;
     v->not_found = 0;
-    v->data = tmp;
+    v->data = p;
 
     return NGX_OK;
 }
@@ -150,27 +136,23 @@ yy_sec_waf_generate_multipart_name(ngx_http_yy_sec_waf_rule_t *rule,
 
 static int
 yy_sec_waf_generate_multipart_filename(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (rule == NULL || ctx == NULL || v == NULL) {
-        return NGX_ERROR;
-    }
-
     ngx_uint_t i;
     ngx_str_t *var;
-    u_char    *tmp;
+    u_char    *p;
 
-    var = ctx->multipart_filename->elts;
+    var = ctx->multipart_filename.elts;
 
-    for (i = 0; i < ctx->multipart_filename->nelts; i++) {
+    for (i = 0; i < ctx->multipart_filename.nelts; i++) {
         v->len += var[i].len;
     }
 
     v->data = ngx_palloc(ctx->pool, v->len);
 
-    tmp = v->data;
+    p = v->data;
 
-    for (i = 0; i < ctx->multipart_filename->nelts; i++) {
+    for (i = 0; i < ctx->multipart_filename.nelts; i++) {
         v->data = ngx_cpymem(v->data, var[i].data, var[i].len);
     }
 
@@ -178,7 +160,7 @@ yy_sec_waf_generate_multipart_filename(ngx_http_yy_sec_waf_rule_t *rule,
     v->no_cacheable = 0;
     v->escape = 0;
     v->not_found = 0;
-    v->data = tmp;
+    v->data = p;
 
     return NGX_OK;
 }
@@ -193,20 +175,18 @@ yy_sec_waf_generate_multipart_filename(ngx_http_yy_sec_waf_rule_t *rule,
 
 static int
 yy_sec_waf_generate_conn_per_ip(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (rule == NULL || ctx == NULL || v == NULL) {
-        return NGX_ERROR;
-    }
+    u_char *p;
 
-    u_char *tmp = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->conn_per_ip);
+    p = ngx_yy_sec_waf_uitoa(ctx->pool, ctx->conn_per_ip);
 
-    v->len = ngx_strlen(tmp);
+    v->len = ngx_strlen(p);
     v->valid = 1;
     v->no_cacheable = 0;
     v->escape = 0;
     v->not_found = 0;
-    v->data = tmp;
+    v->data = p;
 
     return NGX_OK;
 }
@@ -221,12 +201,8 @@ yy_sec_waf_generate_conn_per_ip(ngx_http_yy_sec_waf_rule_t *rule,
 
 static int
 yy_sec_waf_generate_inner_var(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v)
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (rule == NULL || ctx == NULL || v == NULL) {
-        return NGX_ERROR;
-    }
-
     ngx_http_variable_value_t *vv;
     
     if (rule->var_index != NGX_CONF_UNSET) {
@@ -243,14 +219,22 @@ yy_sec_waf_generate_inner_var(ngx_http_yy_sec_waf_rule_t *rule,
 }
 
 static re_var_metadata var_metadata[] = {
-    { ngx_string("ARGS"), yy_sec_waf_generate_args },
-    { ngx_string("POST_ARGS_COUNT"), yy_sec_waf_generate_post_args_count },
-    { ngx_string("PROCESS_BODY_ERROR"), yy_sec_waf_generate_process_body_error },
-    { ngx_string("MULTIPART_NAME"), yy_sec_waf_generate_multipart_name},
-    { ngx_string("MULTIPART_FILENAME"), yy_sec_waf_generate_multipart_filename},
-    { ngx_string("CONN_PER_IP"), yy_sec_waf_generate_conn_per_ip },
-    { ngx_string("$"), yy_sec_waf_generate_inner_var },
-    { ngx_null_string, NULL }
+    { ngx_string("ARGS"), yy_sec_waf_generate_args,
+      0, 0, 0 },
+    { ngx_string("POST_ARGS_COUNT"), yy_sec_waf_generate_post_args_count,
+      0, 0, 0 },
+    { ngx_string("PROCESS_BODY_ERROR"), yy_sec_waf_generate_process_body_error,
+      0, 0, 0 },
+    { ngx_string("MULTIPART_NAME"), yy_sec_waf_generate_multipart_name,
+      offsetof(ngx_http_request_ctx_t, multipart_name), 0, 0 },
+    { ngx_string("MULTIPART_FILENAME"), yy_sec_waf_generate_multipart_filename,
+      offsetof(ngx_http_request_ctx_t, multipart_filename), 0, 0 },
+    { ngx_string("CONN_PER_IP"), yy_sec_waf_generate_conn_per_ip,
+      0, 0, 0 },
+    { ngx_string("$"), yy_sec_waf_generate_inner_var,
+      0, 0, 0 },
+    { ngx_null_string, NULL,
+      0, 0, 0 }
 };
 
 /*

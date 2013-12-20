@@ -65,11 +65,14 @@ typedef struct {
 } re_op_metadata;
 
 typedef int (*fn_var_generate_t)(ngx_http_yy_sec_waf_rule_t *rule,
-    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v);
+    ngx_http_request_ctx_t *ctx, ngx_http_variable_value_t *v, uintptr_t data);
 
 typedef struct {
-    const ngx_str_t name;
+    ngx_str_t         name;
     fn_var_generate_t generate;
+    uintptr_t         data;
+    ngx_uint_t        flags;
+    ngx_uint_t        index;
 } re_var_metadata;
 
 typedef ngx_int_t (*fn_tfns_execute_t)(ngx_http_variable_value_t *v);
