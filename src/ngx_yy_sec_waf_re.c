@@ -634,6 +634,9 @@ ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf)
         return NGX_ERROR;
     }
 
+    if (ngx_http_yy_sec_waf_add_variables(cf) == NGX_ERROR)
+        return NGX_ERROR;
+
     if (ngx_http_yy_sec_waf_init_variables_in_hash(cf,
             &rule_engine->variables_in_hash) == NGX_ERROR)
         return NGX_ERROR;
