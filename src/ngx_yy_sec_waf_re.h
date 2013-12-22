@@ -75,16 +75,12 @@ typedef struct {
 } re_action_metadata;
 
 typedef struct {
-    ngx_hash_t variables_in_hash;
     ngx_hash_t operators_in_hash;
     ngx_hash_t actions_in_hash;
     ngx_hash_t tfns_in_hash;
 } yy_sec_waf_re_t;
 
 ngx_int_t ngx_http_yy_sec_waf_add_variables(ngx_conf_t *cf);
-
-ngx_int_t ngx_http_yy_sec_waf_init_variables_in_hash(ngx_conf_t *cf,
-    ngx_hash_t *hash);
 
 ngx_int_t ngx_http_yy_sec_waf_init_operators_in_hash(ngx_conf_t *cf,
     ngx_hash_t *hash);

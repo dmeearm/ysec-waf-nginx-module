@@ -58,6 +58,7 @@ mac:
 	cd $(shell pwd)/../../../../ && $(shell chmod +x $(shell pwd)/../../../../../3rdParty/*/configure) \
 		./configure --prefix=/usr/local/nginx \
 		--add-module=$(shell pwd) \
+		--add-module=$(shell pwd)/../echo-nginx-module \
 		--without-mail_pop3_module \
 		--without-mail_smtp_module \
 		--without-mail_imap_module \

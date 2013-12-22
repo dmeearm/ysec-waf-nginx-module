@@ -11,33 +11,6 @@
 static yy_sec_waf_re_t *rule_engine;
 
 /*
-** @description: This function is called to resolve variables in hash.
-** @para: ngx_str_t *variable
-** @return: static ngx_http_variable_t *
-*/
-
-static ngx_http_variable_t *
-yy_sec_waf_re_resolve_variable_in_hash(ngx_str_t *variable)
-{
-    ngx_uint_t           key;
-    ngx_http_variable_t *metadata;
-
-    if (variable == NULL) {
-        return NULL;
-    }
-
-    key = ngx_hash_key_lc(variable->data, variable->len);
-    if (variable->data[0] != '$') {
-        ngx_strlow(variable->data, variable->data, variable->len);
-    }
-
-    metadata = (ngx_http_variable_t *)ngx_hash_find(
-        &rule_engine->variables_in_hash, key, variable->data, variable->len);
-
-    return metadata;
-}
-
-/*
 ** @description: This function is called to resolve tfns in hash.
 ** @para: ngx_str_t *action
 ** @return: static re_action_metadata *
@@ -447,6 +420,10 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     }
 
     rule.var_index = ngx_http_get_variable_index(cf, &variable);
+    if (rule.var_index == NGX_ERROR) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] unsupported variable %V", &variable);
+        return NGX_CONF_ERROR;
+    }
 
     /* operator */
     ngx_memcpy(&operator, &value[2], sizeof(ngx_str_t));
@@ -623,10 +600,6 @@ ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf)
     }
 
     if (ngx_http_yy_sec_waf_add_variables(cf) == NGX_ERROR)
-        return NGX_ERROR;
-
-    if (ngx_http_yy_sec_waf_init_variables_in_hash(cf,
-            &rule_engine->variables_in_hash) == NGX_ERROR)
         return NGX_ERROR;
 
     if (ngx_http_yy_sec_waf_init_operators_in_hash(cf,
