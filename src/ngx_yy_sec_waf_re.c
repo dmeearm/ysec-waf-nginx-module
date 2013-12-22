@@ -251,7 +251,7 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
 
     vv = ngx_http_get_flushed_variable(r, rule->var_index);
 
-    if (vv == NULL || vv->not_found) {
+    if (vv == NULL || vv->not_found || vv->len == 0) {
         return NGX_AGAIN;
     }
 

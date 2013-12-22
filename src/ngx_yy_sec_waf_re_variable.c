@@ -33,15 +33,14 @@ yy_sec_waf_get_args(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) {
-        v->data = ctx->post_args.data;
-        v->len = ctx->post_args.len;
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] 1args: %v", v);
-    } else {
+    if (ctx->phase == 1){
         v->data = ctx->args.data;
         v->len = ctx->args.len;
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] 2args: %v", v);
+    } else if (ctx->phase == 2) {
+        v->data = ctx->post_args.data;
+        v->len = ctx->post_args.len;
     }
+
 
     v->valid = 1;
     v->no_cacheable = 0;
