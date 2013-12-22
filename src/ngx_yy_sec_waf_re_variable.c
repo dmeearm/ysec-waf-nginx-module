@@ -242,41 +242,6 @@ yy_sec_waf_get_conn_per_ip(ngx_http_request_t *r,
     return NGX_OK;
 }
 
-/*
-** @description: This function is called to get inner variable.
-** @para: ngx_http_request_t *r
-** @para: ngx_http_variable_value_t *v
-** @para: uintptr_t data
-** @return: NGX_OK or NGX_ERROR if failed.
-*/
-
-static ngx_int_t
-yy_sec_waf_get_inner_var(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    ngx_http_variable_value_t *vv;
-    ngx_http_request_ctx_t    *ctx;
-
-    ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
-
-    if (ctx == NULL) {
-        v->not_found = 1;
-        return NGX_OK;
-    }
-
-    if ((ngx_int_t)data != NGX_ERROR) {
-        vv = ngx_http_get_indexed_variable(r, data);
-    
-        if (vv == NULL || vv->not_found) {
-            return NGX_ERROR;
-        }
-
-        ngx_memcpy(v, vv, sizeof(ngx_http_variable_value_t));
-    }
-
-    return NGX_OK;
-}
-
 static ngx_http_variable_t var_metadata[] = {
 
     { ngx_string("ARGS"), NULL, yy_sec_waf_get_args,
@@ -289,16 +254,13 @@ static ngx_http_variable_t var_metadata[] = {
       0, NGX_HTTP_VAR_NOHASH, 0 },
 
     { ngx_string("MULTIPART_NAME"), NULL, yy_sec_waf_get_multipart_name,
-      offsetof(ngx_http_request_ctx_t, multipart_name), NGX_HTTP_VAR_NOHASH, 0 },
+      0, NGX_HTTP_VAR_NOHASH, 0 },
 
     { ngx_string("MULTIPART_FILENAME"), NULL, yy_sec_waf_get_multipart_filename,
-      offsetof(ngx_http_request_ctx_t, multipart_filename), NGX_HTTP_VAR_NOHASH, 0 },
+      0, NGX_HTTP_VAR_NOHASH, 0 },
 
     { ngx_string("CONN_PER_IP"), NULL, yy_sec_waf_get_conn_per_ip,
       0, NGX_HTTP_VAR_NOHASH, 0 },
-
-    //{ ngx_string("$"), NULL, yy_sec_waf_get_inner_var,
-    //  0, 0, 0 },
 
     { ngx_null_string, NULL, NULL,
       0, 0, 0 }
