@@ -269,32 +269,23 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
     ngx_int_t                   rc;
-    ngx_http_variable_value_t   vv;
+    ngx_http_variable_value_t  *vv;
     ngx_str_t                  *var;
-    ngx_http_variable_t        *var_metadata;
     re_tfns_metadata           *tfn_metadata;
 
-	if (rule == NULL || rule->var_metadata == NULL)
+	if (rule == NULL)
 		return NGX_AGAIN;
 
-    var_metadata = (ngx_http_variable_t*) rule->var_metadata;
+    vv = ngx_http_get_flushed_variable(r, rule->var_index);
 
-    /* Little trick in data to avoid transporting rule as args for generate function.*/
-    if (ngx_strncasecmp(var_metadata->name.data, (u_char*) "$",
-        var_metadata->name.len) == 0) {
-        var_metadata->data = rule->var_index;
-    }
-
-    rc = var_metadata->get_handler(r, &vv, var_metadata->data);
-
-    if (rc == NGX_ERROR || vv.not_found) {
+    if (vv == NULL || vv->not_found) {
         return NGX_AGAIN;
     }
 
     if (rule->tfn_metadata != NULL) {
 
         tfn_metadata = (re_tfns_metadata*) rule->tfn_metadata;
-        rc = tfn_metadata->execute(&vv);
+        rc = tfn_metadata->execute(vv);
         if (rc == NGX_ERROR) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
             return NGX_ERROR;
@@ -306,8 +297,8 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-	var->data = vv.data;
-	var->len = vv.len;
+	var->data = vv->data;
+	var->len = vv->len;
 
     return yy_sec_waf_re_execute_operator(r, var, rule, ctx);
 }
@@ -363,6 +354,8 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
     rule_num = rule_array->nelts;
 
     ctx->phase = phase;
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] phase: %d", phase);
 
     for (i=0; i < rule_num; i++) {
 
@@ -445,20 +438,15 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
 
     /* variable */
     if (value[1].data[0] == '$') {
+
         variable.data = &value[1].data[1];
         variable.len = value[1].len-1;
-        rule.var_index = ngx_http_get_variable_index(cf, &variable);
-        ngx_str_set(&variable, "$");
     } else {
+
         ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
     }
 
-    rule.var_metadata = yy_sec_waf_re_resolve_variable_in_hash(&variable); 
-
-    if (rule.var_metadata == NULL) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve variable");
-        return NGX_CONF_ERROR;
-    }
+    rule.var_index = ngx_http_get_variable_index(cf, &variable);
 
     /* operator */
     ngx_memcpy(&operator, &value[2], sizeof(ngx_str_t));

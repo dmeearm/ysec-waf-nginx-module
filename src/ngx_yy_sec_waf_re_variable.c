@@ -13,7 +13,7 @@ static ngx_http_variable_value_t  yy_sec_waf_false_value = ngx_http_variable("0"
 static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1");
 
 /*
-** @description: This function is called to generate args.
+** @description: This function is called to get args.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
@@ -21,7 +21,7 @@ static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1")
 */
 
 static ngx_int_t
-yy_sec_waf_generate_args(ngx_http_request_t *r,
+yy_sec_waf_get_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_request_ctx_t    *ctx;
@@ -33,12 +33,14 @@ yy_sec_waf_generate_args(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (ctx->phase & REQUEST_HEADER_PHASE) {
-        v->data = ctx->args.data;
-        v->len = ctx->args.len;
-    } else if (ctx->phase & REQUEST_BODY_PHASE) {
+    if (r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) {
         v->data = ctx->post_args.data;
         v->len = ctx->post_args.len;
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] 1args: %v", v);
+    } else {
+        v->data = ctx->args.data;
+        v->len = ctx->args.len;
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] 2args: %v", v);
     }
 
     v->valid = 1;
@@ -50,7 +52,7 @@ yy_sec_waf_generate_args(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to generate post args count.
+** @description: This function is called to get post args count.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
@@ -58,7 +60,7 @@ yy_sec_waf_generate_args(ngx_http_request_t *r,
 */
 
 static ngx_int_t
-yy_sec_waf_generate_post_args_count(ngx_http_request_t *r,
+yy_sec_waf_get_post_args_count(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char                    *p;
@@ -84,7 +86,7 @@ yy_sec_waf_generate_post_args_count(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to generate process body error.
+** @description: This function is called to get process body error.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
@@ -92,7 +94,7 @@ yy_sec_waf_generate_post_args_count(ngx_http_request_t *r,
 */
 
 static ngx_int_t
-yy_sec_waf_generate_process_body_error(ngx_http_request_t *r,
+yy_sec_waf_get_process_body_error(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_request_ctx_t    *ctx;
@@ -114,7 +116,7 @@ yy_sec_waf_generate_process_body_error(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to generate multipart name.
+** @description: This function is called to get multipart name.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
@@ -122,7 +124,7 @@ yy_sec_waf_generate_process_body_error(ngx_http_request_t *r,
 */
 
 static ngx_int_t
-yy_sec_waf_generate_multipart_name(ngx_http_request_t *r,
+yy_sec_waf_get_multipart_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_uint_t                 i;
@@ -161,7 +163,7 @@ yy_sec_waf_generate_multipart_name(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to generate multipart filename.
+** @description: This function is called to get multipart filename.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
@@ -169,7 +171,7 @@ yy_sec_waf_generate_multipart_name(ngx_http_request_t *r,
 */
 
 static ngx_int_t
-yy_sec_waf_generate_multipart_filename(ngx_http_request_t *r,
+yy_sec_waf_get_multipart_filename(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_uint_t                 i;
@@ -208,7 +210,7 @@ yy_sec_waf_generate_multipart_filename(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to generate connection per ip.
+** @description: This function is called to get connection per ip.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
@@ -216,7 +218,7 @@ yy_sec_waf_generate_multipart_filename(ngx_http_request_t *r,
 */
 
 static ngx_int_t
-yy_sec_waf_generate_conn_per_ip(ngx_http_request_t *r,
+yy_sec_waf_get_conn_per_ip(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char                    *p;
@@ -242,7 +244,7 @@ yy_sec_waf_generate_conn_per_ip(ngx_http_request_t *r,
 }
 
 /*
-** @description: This function is called to generate inner variable.
+** @description: This function is called to get inner variable.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_http_variable_value_t *v
 ** @para: uintptr_t data
@@ -250,7 +252,7 @@ yy_sec_waf_generate_conn_per_ip(ngx_http_request_t *r,
 */
 
 static ngx_int_t
-yy_sec_waf_generate_inner_var(ngx_http_request_t *r,
+yy_sec_waf_get_inner_var(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_variable_value_t *vv;
@@ -278,25 +280,25 @@ yy_sec_waf_generate_inner_var(ngx_http_request_t *r,
 
 static ngx_http_variable_t var_metadata[] = {
 
-    { ngx_string("ARGS"), NULL, yy_sec_waf_generate_args,
-      0, 0, 0 },
+    { ngx_string("ARGS"), NULL, yy_sec_waf_get_args,
+      0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_NOHASH, 0 },
 
-    { ngx_string("POST_ARGS_COUNT"), NULL, yy_sec_waf_generate_post_args_count,
-      0, 0, 0 },
+    { ngx_string("POST_ARGS_COUNT"), NULL, yy_sec_waf_get_post_args_count,
+      0, NGX_HTTP_VAR_NOHASH, 0 },
 
-    { ngx_string("PROCESS_BODY_ERROR"), NULL, yy_sec_waf_generate_process_body_error,
-      0, 0, 0 },
+    { ngx_string("PROCESS_BODY_ERROR"), NULL, yy_sec_waf_get_process_body_error,
+      0, NGX_HTTP_VAR_NOHASH, 0 },
 
-    { ngx_string("MULTIPART_NAME"), NULL, yy_sec_waf_generate_multipart_name,
-      offsetof(ngx_http_request_ctx_t, multipart_name), 0, 0 },
+    { ngx_string("MULTIPART_NAME"), NULL, yy_sec_waf_get_multipart_name,
+      offsetof(ngx_http_request_ctx_t, multipart_name), NGX_HTTP_VAR_NOHASH, 0 },
 
-    { ngx_string("MULTIPART_FILENAME"), NULL, yy_sec_waf_generate_multipart_filename,
-      offsetof(ngx_http_request_ctx_t, multipart_filename), 0, 0 },
+    { ngx_string("MULTIPART_FILENAME"), NULL, yy_sec_waf_get_multipart_filename,
+      offsetof(ngx_http_request_ctx_t, multipart_filename), NGX_HTTP_VAR_NOHASH, 0 },
 
-    { ngx_string("CONN_PER_IP"), NULL, yy_sec_waf_generate_conn_per_ip,
-      0, 0, 0 },
+    { ngx_string("CONN_PER_IP"), NULL, yy_sec_waf_get_conn_per_ip,
+      0, NGX_HTTP_VAR_NOHASH, 0 },
 
-    { ngx_string("$"), NULL, yy_sec_waf_generate_inner_var,
+    { ngx_string("$"), NULL, yy_sec_waf_get_inner_var,
       0, 0, 0 },
 
     { ngx_null_string, NULL, NULL,
