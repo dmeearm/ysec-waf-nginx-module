@@ -396,52 +396,32 @@ MATCH:
 }
 
 /*
-** @description: This function is called to read configuration of yy sec waf.
+** @description: This function is called to parse variables.
 ** @para: ngx_conf_t *cf
-** @para: ngx_command_t *cmd
-** @para: void *conf
-** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+** @para: ngx_str_t *value
+** @para: ngx_array_t *var_index_array
+** @return: static char *
 */
 
-char *
-ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
-    ngx_command_t *cmd, void *conf)
+static char *
+yy_sec_waf_re_parse_variables(ngx_conf_t *cf,
+    ngx_str_t *value, ngx_http_yy_sec_waf_rule_t *rule)
 {
-    ngx_http_yy_sec_waf_loc_conf_t  *p = conf;
-
-    ngx_uint_t                  n;
-    u_char                     *pos;
-    ngx_str_t                  *value, variable, operator, action;
-    ngx_shm_zone_t             *shm_zone;
-    re_op_metadata             *op_metadata;
-    re_action_metadata         *action_metadata;
-    ngx_http_yy_sec_waf_rule_t *rule_p, rule;
-
-    value = cf->args->elts;
-    ngx_memset(&rule, 0, sizeof(ngx_http_yy_sec_waf_rule_t));
-
+    ngx_str_t variable;
     ngx_int_t len, var_index, *var_index_p;
     u_char   *start, *last, *end;
 
-    /* variable */
-    if (value[1].data[0] == '$') {
+    ngx_memcpy(&variable, value, sizeof(ngx_str_t));
 
-        variable.data = &value[1].data[1];
-        variable.len = value[1].len-1;
-    } else {
-
-        ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
-    }
+    ngx_array_init(&rule->var_index, cf->pool, 1, sizeof(ngx_int_t));
 
     len = variable.len;
     start = variable.data;
     last = variable.data+variable.len;
 
-    ngx_array_init(&rule.var_index, cf->pool, 1, sizeof(ngx_int_t));
-
     while(len > 0 && *start) {
 
-        if (*start == '|'){
+        if (*start == '|' || *start == '$'){
             start++;
             continue;
         }
@@ -456,47 +436,103 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
 
         var_index = ngx_http_get_variable_index(cf, &variable);
         if (var_index == NGX_ERROR) {
-            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] unsupported variable %V", &variable);
             return NGX_CONF_ERROR;
         }
 
-        var_index_p = ngx_array_push(&rule.var_index);
+        var_index_p = ngx_array_push(&rule->var_index);
         if (var_index_p == NULL)
             return NGX_CONF_ERROR;
 
-        ngx_memcpy(var_index_p, &var_index, sizeof(ngx_int_t));
+        *var_index_p = var_index;
 
         start = end+1;
         len = last - start;
     }
 
-    /* operator */
-    ngx_memcpy(&operator, &value[2], sizeof(ngx_str_t));
+    return NGX_CONF_OK;
+}
+
+/*
+** @description: This function is called to parse variables.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *value
+** @para: ngx_array_t *var_index_array
+** @return: static char *
+*/
+
+static char *
+yy_sec_waf_re_parse_operator(ngx_conf_t *cf,
+    ngx_str_t *value, ngx_http_yy_sec_waf_rule_t *rule)
+{
+    u_char              *pos;
+    re_op_metadata      *op_metadata;
+    ngx_str_t            operator;
+
+    ngx_memcpy(&operator, value, sizeof(ngx_str_t));
 
     if (operator.data[0] == '!') {
-        rule.op_negative = 1;
+        rule->op_negative = 1;
         operator.data++;
     }
 
     pos = ngx_strlchr(operator.data, operator.data+operator.len, ':');
     operator.len = pos-operator.data;
 
-    rule.op_metadata = yy_sec_waf_re_resolve_operator_in_hash(&operator);
+    rule->op_metadata = yy_sec_waf_re_resolve_operator_in_hash(&operator);
 
-    if (rule.op_metadata == NULL) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed to resolve operator");
+    if (rule->op_metadata == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    operator.len = value[2].len;
+    operator.len = value->len;
     if (operator.data[0] == '!') {
         operator.len--;
     }
 
-    op_metadata = (re_op_metadata*) rule.op_metadata;
+    op_metadata = (re_op_metadata*) rule->op_metadata;
 
-    if (op_metadata->parse(cf, &operator, &rule) != NGX_CONF_OK) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] Failed parsing '%V'", &operator);
+    if (op_metadata->parse(cf, &operator, rule) != NGX_CONF_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    return NGX_CONF_OK;
+}
+
+/*
+** @description: This function is called to read configuration of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_command_t *cmd
+** @para: void *conf
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+char *
+ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf)
+{
+    ngx_http_yy_sec_waf_loc_conf_t  *p = conf;
+
+    ngx_uint_t                  n;
+    char                       *rc;
+    ngx_str_t                  *value, action;
+    ngx_shm_zone_t             *shm_zone;
+    re_action_metadata         *action_metadata;
+    ngx_http_yy_sec_waf_rule_t *rule_p, rule;
+
+    value = cf->args->elts;
+    ngx_memset(&rule, 0, sizeof(ngx_http_yy_sec_waf_rule_t));
+
+    /* variable */
+    rc = yy_sec_waf_re_parse_variables(cf, &value[1], &rule);
+    if (rc == NGX_CONF_ERROR) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] yy_sec_waf_re_parse_variables failed");
+        return NGX_CONF_ERROR;
+    }
+
+    /* operator */
+    rc = yy_sec_waf_re_parse_operator(cf, &value[2], &rule);
+    if (rc == NGX_CONF_ERROR) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] yy_sec_waf_re_parse_operator failed");
         return NGX_CONF_ERROR;
     }
 
