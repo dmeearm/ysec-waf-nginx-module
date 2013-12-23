@@ -8,10 +8,6 @@
 
 #include "ngx_yy_sec_waf_re.h"
 
-static ngx_http_variable_value_t  yy_sec_waf_false_value = ngx_http_variable("0");
-
-static ngx_http_variable_value_t  yy_sec_waf_true_value = ngx_http_variable("1");
-
 /*
 ** @description: This function is called to get args.
 ** @para: ngx_http_request_t *r
@@ -106,9 +102,9 @@ yy_sec_waf_get_process_body_error(ngx_http_request_t *r,
     }
 
     if (ctx->process_body_error == 1) {
-        *v = yy_sec_waf_true_value;
+        *v = ngx_http_variable_true_value;
     } else {
-        *v = yy_sec_waf_false_value;
+        *v = ngx_http_variable_null_value;
     }
 
     return NGX_OK;
