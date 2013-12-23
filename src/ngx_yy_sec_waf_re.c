@@ -241,7 +241,8 @@ ngx_int_t
 yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
-    ngx_int_t                   rc;
+    ngx_int_t                   rc, *var_index_p;
+    ngx_uint_t                  i;
     ngx_http_variable_value_t  *vv;
     ngx_str_t                  *var;
     re_tfns_metadata           *tfn_metadata;
@@ -249,31 +250,41 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
 	if (rule == NULL)
 		return NGX_AGAIN;
 
-    vv = ngx_http_get_flushed_variable(r, rule->var_index);
+    var_index_p = rule->var_index.elts;
 
-    if (vv == NULL || vv->not_found || vv->len == 0) {
-        return NGX_AGAIN;
-    }
+    for (i = 0; i < rule->var_index.nelts; i++) {
 
-    if (rule->tfn_metadata != NULL) {
-
-        tfn_metadata = (re_tfns_metadata*) rule->tfn_metadata;
-        rc = tfn_metadata->execute(vv);
-        if (rc == NGX_ERROR) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
+        vv = ngx_http_get_flushed_variable(r, var_index_p[i]);
+    
+        if (vv == NULL || vv->not_found || vv->len == 0) {
+            return NGX_AGAIN;
+        }
+    
+        if (rule->tfn_metadata != NULL) {
+    
+            tfn_metadata = (re_tfns_metadata*) rule->tfn_metadata;
+            rc = tfn_metadata->execute(vv);
+            if (rc == NGX_ERROR) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
+                return NGX_ERROR;
+            }
+        }
+    
+        var = ngx_palloc(r->pool, sizeof(ngx_str_t));
+        if (var == NULL) {
             return NGX_ERROR;
+        }
+    
+    	var->data = vv->data;
+    	var->len = vv->len;
+    
+        rc = yy_sec_waf_re_execute_operator(r, var, rule, ctx);
+        if (rc == NGX_ERROR || rc == RULE_MATCH) {
+            return rc;
         }
     }
 
-    var = ngx_palloc(r->pool, sizeof(ngx_str_t));
-    if (var == NULL) {
-        return NGX_ERROR;
-    }
-
-	var->data = vv->data;
-	var->len = vv->len;
-
-    return yy_sec_waf_re_execute_operator(r, var, rule, ctx);
+    return RULE_NO_MATCH;
 }
 
 /*
@@ -409,6 +420,9 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     value = cf->args->elts;
     ngx_memset(&rule, 0, sizeof(ngx_http_yy_sec_waf_rule_t));
 
+    ngx_int_t len, var_index, *var_index_p;
+    u_char   *start, *last, *end;
+
     /* variable */
     if (value[1].data[0] == '$') {
 
@@ -419,10 +433,41 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         ngx_memcpy(&variable, &value[1], sizeof(ngx_str_t));
     }
 
-    rule.var_index = ngx_http_get_variable_index(cf, &variable);
-    if (rule.var_index == NGX_ERROR) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] unsupported variable %V", &variable);
-        return NGX_CONF_ERROR;
+    len = variable.len;
+    start = variable.data;
+    last = variable.data+variable.len;
+
+    ngx_array_init(&rule.var_index, cf->pool, 1, sizeof(ngx_int_t));
+
+    while(len > 0 && *start) {
+
+        if (*start == '|'){
+            start++;
+            continue;
+        }
+
+        end = ngx_strlchr(start, last, '|');
+        if (end == NULL) {
+            end = last;
+        }
+
+        variable.data = start;
+        variable.len = end - start;
+
+        var_index = ngx_http_get_variable_index(cf, &variable);
+        if (var_index == NGX_ERROR) {
+            ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[ysec_waf] unsupported variable %V", &variable);
+            return NGX_CONF_ERROR;
+        }
+
+        var_index_p = ngx_array_push(&rule.var_index);
+        if (var_index_p == NULL)
+            return NGX_CONF_ERROR;
+
+        ngx_memcpy(var_index_p, &var_index, sizeof(ngx_int_t));
+
+        start = end+1;
+        len = last - start;
     }
 
     /* operator */

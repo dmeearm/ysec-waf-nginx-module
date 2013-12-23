@@ -33,7 +33,7 @@ yy_sec_waf_get_args(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (ctx->phase == 1){
+    if (ctx->phase == 1) {
         v->data = ctx->args.data;
         v->len = ctx->args.len;
     } else if (ctx->phase == 2) {
@@ -245,6 +245,9 @@ yy_sec_waf_get_conn_per_ip(ngx_http_request_t *r,
 static ngx_http_variable_t var_metadata[] = {
 
     { ngx_string("ARGS"), NULL, yy_sec_waf_get_args,
+      0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_NOHASH, 0 },
+
+    { ngx_string("POST_ARGS"), NULL, yy_sec_waf_get_args,
       0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_NOHASH, 0 },
 
     { ngx_string("POST_ARGS_COUNT"), NULL, yy_sec_waf_get_post_args_count,

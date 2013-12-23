@@ -42,7 +42,9 @@ typedef struct ngx_http_yy_sec_waf_rule {
     ngx_str_t *msg; /* MSG */
     ngx_int_t  rule_id;
     ngx_int_t  phase;
-    ngx_int_t  var_index;
+
+    /*target variable index array*/
+    ngx_array_t  var_index;
 
     ngx_flag_t op_negative;
 
