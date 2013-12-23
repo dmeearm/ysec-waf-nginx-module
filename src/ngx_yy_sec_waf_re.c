@@ -237,7 +237,7 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
 ** @return: RULE_MATCH or RULE_NO_MATCH if failed.
 */
 
-ngx_int_t
+static ngx_int_t
 yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
@@ -399,7 +399,7 @@ MATCH:
 ** @description: This function is called to parse variables.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *value
-** @para: ngx_array_t *var_index_array
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: static char *
 */
 
@@ -453,10 +453,10 @@ yy_sec_waf_re_parse_variables(ngx_conf_t *cf,
 }
 
 /*
-** @description: This function is called to parse variables.
+** @description: This function is called to parse operator.
 ** @para: ngx_conf_t *cf
 ** @para: ngx_str_t *value
-** @para: ngx_array_t *var_index_array
+** @para: ngx_http_yy_sec_waf_rule_t *rule
 ** @return: static char *
 */
 
