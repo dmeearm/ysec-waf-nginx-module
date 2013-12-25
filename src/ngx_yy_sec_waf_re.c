@@ -411,6 +411,10 @@ yy_sec_waf_re_parse_variables(ngx_conf_t *cf,
     ngx_int_t len, var_index, *var_index_p;
     u_char   *start, *last, *end;
 
+    if (value == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
     ngx_memcpy(&variable, value, sizeof(ngx_str_t));
 
     ngx_array_init(&rule->var_index, cf->pool, 1, sizeof(ngx_int_t));
@@ -467,6 +471,10 @@ yy_sec_waf_re_parse_operator(ngx_conf_t *cf,
     u_char              *pos;
     re_op_metadata      *op_metadata;
     ngx_str_t            operator;
+
+    if (value == NULL) {
+        return NGX_CONF_ERROR;
+    }
 
     ngx_memcpy(&operator, value, sizeof(ngx_str_t));
 
