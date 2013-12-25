@@ -246,6 +246,7 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_http_variable_value_t  *vv;
     ngx_str_t                   var;
     re_tfns_metadata           *tfn_metadata;
+    ngx_int_t                   is_tfn_done;
 
 	if (rule == NULL)
 		return NGX_AGAIN;
@@ -259,14 +260,20 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
         if (vv == NULL || vv->not_found || vv->len == 0) {
             return NGX_AGAIN;
         }
-    
-        if (rule->tfn_metadata != NULL) {
-    
+
+        is_tfn_done = 0;
+
+        if ((rule->tfn_metadata != NULL) && !is_tfn_done) {
+
             tfn_metadata = (re_tfns_metadata*) rule->tfn_metadata;
             rc = tfn_metadata->execute(vv);
             if (rc == NGX_ERROR) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
                 return NGX_ERROR;
+            }
+
+            if (vv->no_cacheable) {
+                is_tfn_done = 1;
             }
         }
 
