@@ -244,7 +244,7 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_int_t                   rc, *var_index_p;
     ngx_uint_t                  i;
     ngx_http_variable_value_t  *vv;
-    ngx_str_t                  *var;
+    ngx_str_t                   var;
     re_tfns_metadata           *tfn_metadata;
 
 	if (rule == NULL)
@@ -269,16 +269,11 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
                 return NGX_ERROR;
             }
         }
+
+    	var.data = vv->data;
+    	var.len = vv->len;
     
-        var = ngx_palloc(r->pool, sizeof(ngx_str_t));
-        if (var == NULL) {
-            return NGX_ERROR;
-        }
-    
-    	var->data = vv->data;
-    	var->len = vv->len;
-    
-        rc = yy_sec_waf_re_execute_operator(r, var, rule, ctx);
+        rc = yy_sec_waf_re_execute_operator(r, &var, rule, ctx);
         if (rc == NGX_ERROR || rc == RULE_MATCH) {
             return rc;
         }
