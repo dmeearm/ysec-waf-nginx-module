@@ -21,6 +21,7 @@ yy_sec_waf_get_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_request_ctx_t    *ctx;
+    ngx_str_t                  p;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
@@ -29,14 +30,28 @@ yy_sec_waf_get_args(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (ctx->phase == 1) {
-        v->data = ctx->args.data;
-        v->len = ctx->args.len;
-    } else if (ctx->phase == 2) {
-        v->data = ctx->post_args.data;
-        v->len = ctx->post_args.len;
+    if (ctx->args.len == 0 && ctx->post_args.len == 0){
+        v->not_found = 1;
+        return NGX_OK;
     }
 
+    v->data = ctx->args.data;
+    v->len = ctx->args.len;
+
+    if (ctx->post_args.len) {
+        p.len = ctx->args.len+ctx->post_args.len+1;
+        p.data = ngx_palloc(r->pool, p.len);
+        if (p.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        v->data = p.data;
+        v->len = p.len;
+
+        p.data = ngx_cpymem(p.data, ctx->args.data, ctx->args.len);
+        p.data = ngx_cpymem(p.data, ",", 1);
+        ngx_memcpy(p.data, ctx->post_args.data, ctx->post_args.len);
+    }
 
     v->valid = 1;
     v->no_cacheable = 0;
@@ -64,6 +79,11 @@ yy_sec_waf_get_post_args_count(ngx_http_request_t *r,
     ctx = ngx_http_get_module_ctx(r, ngx_http_yy_sec_waf_module);
 
     if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    if (ctx->post_args_count == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -104,7 +124,7 @@ yy_sec_waf_get_process_body_error(ngx_http_request_t *r,
     if (ctx->process_body_error == 1) {
         *v = ngx_http_variable_true_value;
     } else {
-        *v = ngx_http_variable_null_value;
+        v->not_found = 1;
     }
 
     return NGX_OK;
@@ -138,6 +158,11 @@ yy_sec_waf_get_multipart_name(ngx_http_request_t *r,
 
     for (i = 0; i < ctx->multipart_name.nelts; i++) {
         v->len += var[i].len;
+    }
+
+    if (v->len == 0) {
+        v->not_found = 1;
+        return NGX_OK;
     }
 
     v->data = ngx_palloc(r->pool, v->len);
@@ -187,6 +212,11 @@ yy_sec_waf_get_multipart_filename(ngx_http_request_t *r,
         v->len += var[i].len;
     }
 
+    if (v->len == 0) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
     v->data = ngx_palloc(r->pool, v->len);
 
     p = v->data;
@@ -226,6 +256,11 @@ yy_sec_waf_get_conn_per_ip(ngx_http_request_t *r,
         return NGX_OK;
     }
 
+    if (ctx->conn_per_ip == 0) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
     p = ngx_yy_sec_waf_uitoa(r->pool, ctx->conn_per_ip);
 
     v->len = ngx_strlen(p);
@@ -241,9 +276,9 @@ yy_sec_waf_get_conn_per_ip(ngx_http_request_t *r,
 static ngx_http_variable_t var_metadata[] = {
 
     { ngx_string("ARGS"), NULL, yy_sec_waf_get_args,
-      0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_NOHASH, 0 },
+      0, NGX_HTTP_VAR_NOHASH, 0 },
 
-    { ngx_string("POST_ARGS"), NULL, yy_sec_waf_get_args,
+    { ngx_string("ARGS_POST"), NULL, yy_sec_waf_get_args,
       0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_NOHASH, 0 },
 
     { ngx_string("POST_ARGS_COUNT"), NULL, yy_sec_waf_get_post_args_count,

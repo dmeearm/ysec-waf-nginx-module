@@ -390,12 +390,6 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         }
     }
 
-    if (!ctx->process_done) {
-        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
-        if (ctx->matched || rc == NGX_ERROR) {
-            return rc;
-        }
-    }
 
     /* This section is prepared for further considerations, such as checking the body of this request.*/
     if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT) && !ctx->read_body_done) {
@@ -421,11 +415,20 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             if (rc == NGX_ERROR) {
                 return rc;
             }
+		}
 
-			rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
-			if (ctx->matched || rc == NGX_ERROR) {
-				return rc;
-			}
+        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
+        if (ctx->matched || rc == NGX_ERROR) {
+            return rc;
+        }
+
+        if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
+            && r->request_body) {
+
+            rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
+            if (ctx->matched || rc == NGX_ERROR) {
+                return rc;
+            }
 		}
 
         return rc;

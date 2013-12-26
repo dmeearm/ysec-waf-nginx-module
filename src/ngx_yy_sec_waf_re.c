@@ -261,6 +261,8 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
             return NGX_AGAIN;
         }
 
+		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] vv:%v", vv);
+
         is_tfn_done = 0;
 
         if ((rule->tfn_metadata != NULL) && !is_tfn_done) {
@@ -272,7 +274,7 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
                 return NGX_ERROR;
             }
 
-            if (vv->no_cacheable) {
+            if (vv->no_cacheable == 0) {
                 is_tfn_done = 1;
             }
         }
