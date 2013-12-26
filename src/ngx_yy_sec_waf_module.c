@@ -376,8 +376,8 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 #ifdef NGX_HTTP_X_FORWARDED_FOR
-    if (r->headers_in.x_forwarded_for)
-	    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] x-forwad-ip:%V", &r->headers_in.x_forwarded_for->value);
+    if (r->headers_in.x_forwarded_for.elts)
+	    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] x-forwad-ip:%V", (ngx_str_t*)r->headers_in.x_forwarded_for.elts);
 #endif
     ngx_http_set_ctx(r, ctx, ngx_http_yy_sec_waf_module);
 
