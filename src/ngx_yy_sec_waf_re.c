@@ -198,6 +198,32 @@ yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
 static ngx_int_t
 yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
 {
+    ngx_str_t    server_ip, x_real_ip;
+    u_char       addr[NGX_SOCKADDR_STRLEN];
+
+    ngx_memzero(&server_ip, sizeof(ngx_str_t));
+    ngx_memzero(&x_real_ip, sizeof(ngx_str_t));
+
+    server_ip.len = NGX_SOCKADDR_STRLEN;
+    server_ip.data = addr;
+
+    if (ngx_connection_local_sockaddr(ctx->r->connection, &server_ip, 0) != NGX_OK) {
+        return NGX_ERROR;
+    }
+    
+    server_ip.data = ngx_pnalloc(ctx->r->pool, server_ip.len);
+    if (server_ip.data == NULL) {
+        return NGX_ERROR;
+    }
+    
+    ngx_memcpy(server_ip.data, addr, server_ip.len);
+	
+#ifdef NGX_HTTP_REALIP
+    if (ctx->r->headers_in.x_real_ip) {
+        ngx_memcpy(&x_real_ip, &ctx->r->headers_in.x_real_ip->value, sizeof(ngx_str_t));
+    }
+#endif
+
     ngx_atomic_fetch_add(request_matched, 1);
 
     ctx->process_done = 1;
@@ -213,14 +239,15 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
 
     if ((ctx->action_level & ACTION_LOG) && ctx->matched_string) {
         ngx_log_error(NGX_LOG_ERR, ctx->r->connection->log, 0,
-            "[ysec_waf] %s, id:%d, conn_per_ip:%ud,"
-            " matched:%uA, blocked:%uA, allowed:%uA, alerted:%uA"
-            " msg:%V, info:%V",
+            "[ysec_waf] %s, id: %d, conn_per_ip: %ud,"
+            " matched: %uA blocked: %uA allowed: %uA alerted: %uA,"
+            " msg: %V, client_ip: %V, server_ip: %V",
             (ctx->action_level & ACTION_BLOCK)? "block":
             (ctx->action_level & ACTION_ALLOW)? "allow": "alert",
             ctx->rule_id, ctx->conn_per_ip,
             *request_matched, *request_blocked, *request_allowed, *request_logged,
-            ctx->msg, ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string);
+            ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string,
+            &x_real_ip, &server_ip);
     }
 
     if (ctx->action_level & ACTION_BLOCK)
