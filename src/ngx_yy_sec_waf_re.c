@@ -217,7 +217,8 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
     }
     
     ngx_memcpy(server_ip.data, addr, server_ip.len);
-	
+
+    ngx_memcpy(&x_real_ip, &ctx->r->connection->addr_text, sizeof(ngx_str_t));
 #ifdef NGX_HTTP_REALIP
     if (ctx->r->headers_in.x_real_ip) {
         ngx_memcpy(&x_real_ip, &ctx->r->headers_in.x_real_ip->value, sizeof(ngx_str_t));
@@ -271,12 +272,16 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_int_t                   rc, *var_index_p;
     ngx_uint_t                  i;
     ngx_http_variable_value_t  *vv;
-    ngx_str_t                   var;
+    ngx_str_t                  *var;
     re_tfns_metadata           *tfn_metadata;
     ngx_int_t                   is_tfn_done;
 
 	if (rule == NULL)
 		return NGX_AGAIN;
+
+    var = ngx_palloc(r->pool, sizeof(ngx_str_t));
+    if (var == NULL)
+        return NGX_ERROR;
 
     var_index_p = rule->var_index.elts;
 
@@ -288,7 +293,6 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
             return NGX_AGAIN;
         }
 
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] vv:%v", vv);
 
         is_tfn_done = 0;
 
@@ -306,10 +310,12 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
             }
         }
 
-    	var.data = vv->data;
-    	var.len = vv->len;
-    
-        rc = yy_sec_waf_re_execute_operator(r, &var, rule, ctx);
+        var->data = vv->data;
+        var->len = vv->len;
+
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] id:%d, var:%V", rule->rule_id, var);
+
+        rc = yy_sec_waf_re_execute_operator(r, var, rule, ctx);
         if (rc == NGX_ERROR || rc == RULE_MATCH) {
             return rc;
         }
