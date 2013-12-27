@@ -276,25 +276,25 @@ yy_sec_waf_get_conn_per_ip(ngx_http_request_t *r,
 static ngx_http_variable_t var_metadata[] = {
 
     { ngx_string("ARGS"), NULL, yy_sec_waf_get_args,
-      0, NGX_HTTP_VAR_NOHASH, 0 },
+      0, 0, 0 },
 
     { ngx_string("ARGS_POST"), NULL, yy_sec_waf_get_args,
-      0, NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_NOHASH, 0 },
+      0, 0, 0 },
 
     { ngx_string("POST_ARGS_COUNT"), NULL, yy_sec_waf_get_post_args_count,
-      0, NGX_HTTP_VAR_NOHASH, 0 },
+      0, 0, 0 },
 
     { ngx_string("PROCESS_BODY_ERROR"), NULL, yy_sec_waf_get_process_body_error,
-      0, NGX_HTTP_VAR_NOHASH, 0 },
+      0, 0, 0 },
 
     { ngx_string("MULTIPART_NAME"), NULL, yy_sec_waf_get_multipart_name,
-      0, NGX_HTTP_VAR_NOHASH, 0 },
+      0, 0, 0 },
 
     { ngx_string("MULTIPART_FILENAME"), NULL, yy_sec_waf_get_multipart_filename,
-      0, NGX_HTTP_VAR_NOHASH, 0 },
+      0, 0, 0 },
 
     { ngx_string("CONN_PER_IP"), NULL, yy_sec_waf_get_conn_per_ip,
-      0, NGX_HTTP_VAR_NOHASH, 0 },
+      0, 0, 0 },
 
     { ngx_null_string, NULL, NULL,
       0, 0, 0 }

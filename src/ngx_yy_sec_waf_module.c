@@ -406,27 +406,23 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     if (ctx && ctx->read_body_done && !ctx->process_done) {
         rc = NGX_DECLINED;
 
-		if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
-			&& r->request_body) {
-			rc = ngx_http_yy_sec_waf_process_body(r, cf, ctx);
+        if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
+            && r->request_body) {
+            rc = ngx_http_yy_sec_waf_process_body(r, cf, ctx);
             if (rc == NGX_ERROR) {
                 return rc;
             }
-		}
+        }
 
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
         if (ctx->matched || rc == NGX_ERROR) {
             return rc;
         }
 
-        if ((r->method == NGX_HTTP_POST || r->method == NGX_HTTP_PUT)
-            && r->request_body) {
-
-            rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
-            if (ctx->matched || rc == NGX_ERROR) {
-                return rc;
-            }
-		}
+        rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
+        if (ctx->matched || rc == NGX_ERROR) {
+            return rc;
+        }
 
         return rc;
     }

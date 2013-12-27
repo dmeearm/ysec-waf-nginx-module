@@ -99,6 +99,7 @@ typedef struct {
     ngx_uint_t post_args_len;
     ngx_uint_t conn_per_ip;
     ngx_int_t  var_index;
+    ngx_str_t  var;
 
     /* level flags*/
     ngx_flag_t    action_level;

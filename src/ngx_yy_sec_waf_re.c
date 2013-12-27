@@ -165,7 +165,7 @@ yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
 
 static ngx_int_t
 yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
-    ngx_str_t *str, ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
+    ngx_http_yy_sec_waf_rule_t *rule, ngx_http_request_ctx_t *ctx)
 {
     ngx_int_t        rc;
 
@@ -173,7 +173,7 @@ yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    rc = ((re_op_metadata*)rule->op_metadata)->execute(r, str, rule);
+    rc = ((re_op_metadata*)rule->op_metadata)->execute(r, &ctx->var, rule);
 
     if ((rc == RULE_MATCH && !rule->op_negative)
         || (rc == RULE_NO_MATCH && rule->op_negative)) {
@@ -182,7 +182,6 @@ yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
         ctx->action_level = rule->action_level;
         ctx->gids = rule->gids;
         ctx->msg = rule->msg;
-        ctx->matched_string = str;
         return RULE_MATCH;
     }
 
@@ -247,7 +246,7 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
             (ctx->action_level & ACTION_ALLOW)? "allow": "alert",
             ctx->rule_id, ctx->conn_per_ip,
             *request_matched, *request_blocked, *request_allowed, *request_logged,
-            ctx->process_body_error? &ctx->process_body_error_msg:ctx->matched_string,
+            ctx->process_body_error? &ctx->process_body_error_msg: &ctx->var,
             &x_real_ip, &server_ip);
     }
 
@@ -272,16 +271,11 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_int_t                   rc, *var_index_p;
     ngx_uint_t                  i;
     ngx_http_variable_value_t  *vv;
-    ngx_str_t                  *var;
     re_tfns_metadata           *tfn_metadata;
     ngx_int_t                   is_tfn_done;
 
 	if (rule == NULL)
 		return NGX_AGAIN;
-
-    var = ngx_palloc(r->pool, sizeof(ngx_str_t));
-    if (var == NULL)
-        return NGX_ERROR;
 
     var_index_p = rule->var_index.elts;
 
@@ -310,12 +304,12 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
             }
         }
 
-        var->data = vv->data;
-        var->len = vv->len;
+        ctx->var.data = vv->data;
+        ctx->var.len = vv->len;
 
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] id:%d, var:%V", rule->rule_id, var);
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] id:%d, var:%V", rule->rule_id, &ctx->var);
 
-        rc = yy_sec_waf_re_execute_operator(r, var, rule, ctx);
+        rc = yy_sec_waf_re_execute_operator(r, rule, ctx);
         if (rc == NGX_ERROR || rc == RULE_MATCH) {
             return rc;
         }
