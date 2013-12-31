@@ -239,6 +239,36 @@ yy_sec_waf_parse_chain(ngx_conf_t *cf,
 
     return NGX_CONF_OK;
 }
+
+/*
+** @description: This function is called to parse status of yy sec waf.
+** @para: ngx_conf_t *cf
+** @para: ngx_str_t *tmp
+** @para: ngx_http_yy_sec_waf_rule_t *rule
+** @return: NGX_CONF_OK or NGX_CONF_ERROR if failed.
+*/
+
+static void *
+yy_sec_waf_parse_status(ngx_conf_t *cf,
+    ngx_str_t *tmp, ngx_http_yy_sec_waf_rule_t *rule)
+{
+    ngx_str_t *status;
+
+    if (!rule)
+        return NGX_CONF_ERROR;
+
+    status = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+    if (!status)
+        return NGX_CONF_ERROR;
+
+    status->data = tmp->data + ngx_strlen("status:");
+    status->len = tmp->len - ngx_strlen("status:");
+
+    rule->status = ngx_atoi(status->data, status->len);
+
+    return NGX_CONF_OK;
+}
+
 static re_action_metadata action_metadata[] = {
     { ngx_string("gids"), yy_sec_waf_parse_gids},
     { ngx_string("id"), yy_sec_waf_parse_rule_id},
@@ -247,6 +277,7 @@ static re_action_metadata action_metadata[] = {
     { ngx_string("phase"), yy_sec_waf_parse_phase},
     { ngx_string("t"), yy_sec_waf_parse_tfn},
     { ngx_string("chain"), yy_sec_waf_parse_chain},
+    { ngx_string("status"), yy_sec_waf_parse_status},
     { ngx_null_string, NULL}
 };
 

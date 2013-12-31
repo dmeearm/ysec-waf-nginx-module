@@ -150,7 +150,7 @@ yy_sec_waf_output_forbidden_page(ngx_http_request_t *r,
 
         return NGX_HTTP_OK;
     } else {
-        return NGX_HTTP_PRECONDITION_FAILED;
+        return ctx->status? ctx->status: NGX_HTTP_PRECONDITION_FAILED;
     }
 }
 
@@ -182,6 +182,7 @@ yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
         ctx->action_level = rule->action_level;
         ctx->gids = rule->gids;
         ctx->msg = rule->msg;
+        ctx->status = rule->status;
         return RULE_MATCH;
     }
 

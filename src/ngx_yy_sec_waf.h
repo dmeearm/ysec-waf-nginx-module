@@ -46,16 +46,16 @@ typedef struct ngx_http_yy_sec_waf_rule {
     /*target variable index array*/
     ngx_array_t  var_index;
 
+    /* operators*/
     ngx_flag_t op_negative;
 
-    void *var_metadata;
     void *op_metadata;
     void *action_metadata;
     void *tfn_metadata;
 
-    /* level flags*/
-    ngx_flag_t    action_level;
-
+    /* actions*/
+    ngx_flag_t     action_level;
+    ngx_uint_t     status;
     ngx_flag_t     is_chain;
 } ngx_http_yy_sec_waf_rule_t;
 
@@ -103,6 +103,7 @@ typedef struct {
 
     /* level flags*/
     ngx_flag_t    action_level;
+    ngx_uint_t    status;
 
     /* state */
     ngx_flag_t    process_done:1;
