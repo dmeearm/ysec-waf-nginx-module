@@ -580,7 +580,10 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     for (n = 3; n < cf->args->nelts; n++) {
         ngx_memcpy(&action, &value[n], sizeof(ngx_str_t));
         u_char *pos = ngx_strlchr(action.data, action.data+action.len, ':');
-        action.len = pos-action.data;
+
+        if (pos) {
+            action.len = pos-action.data;
+        }
 
         rule.action_metadata = yy_sec_waf_re_resolve_action_in_hash(&action);
 
