@@ -198,11 +198,11 @@ yy_sec_waf_re_execute_operator(ngx_http_request_t *r,
 static ngx_int_t
 yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
 {
-    ngx_str_t    server_ip, x_real_ip;
+    ngx_str_t    server_ip, real_client_ip;
     u_char       addr[NGX_SOCKADDR_STRLEN];
 
     ngx_memzero(&server_ip, sizeof(ngx_str_t));
-    ngx_memzero(&x_real_ip, sizeof(ngx_str_t));
+    ngx_memzero(&real_client_ip, sizeof(ngx_str_t));
 
     server_ip.len = NGX_SOCKADDR_STRLEN;
     server_ip.data = addr;
@@ -218,11 +218,23 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
     
     ngx_memcpy(server_ip.data, addr, server_ip.len);
 
-    ngx_memcpy(&x_real_ip, &ctx->r->connection->addr_text, sizeof(ngx_str_t));
-#ifdef NGX_HTTP_REALIP
-    if (ctx->r->headers_in.x_real_ip) {
-        ngx_memcpy(&x_real_ip, &ctx->r->headers_in.x_real_ip->value, sizeof(ngx_str_t));
-    }
+    ngx_memcpy(&real_client_ip,
+        &ctx->r->connection->addr_text, sizeof(ngx_str_t));
+
+#ifdef NGX_HTTP_X_FORWARDED_FOR
+	
+    #if (nginx_version < 1003014)
+        if (ctx->r->headers_in.x_forwarded_for != NULL) {
+            ngx_memcpy(&real_client_ip,
+                &ctx->r->headers_in.x_forwarded_for->value, sizeof(ngx_str_t));
+        }
+    #else
+	
+        if (ctx->r->headers_in.x_forwarded_for.nelts != 0) {
+            ngx_memcpy(&real_client_ip, 
+                (ngx_str_t*)(ctx->r->headers_in.x_forwarded_for.elts[0]), sizeof(ngx_str_t));
+        }
+	#endif
 #endif
 
     ngx_atomic_fetch_add(request_matched, 1);
@@ -248,7 +260,7 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
             ctx->rule_id, ctx->conn_per_ip,
             *request_matched, *request_blocked, *request_allowed, *request_logged,
             ctx->process_body_error? &ctx->process_body_error_msg: &ctx->var,
-            &x_real_ip, &server_ip);
+            &real_client_ip, &server_ip);
     }
 
     if (ctx->action_level & ACTION_BLOCK)
