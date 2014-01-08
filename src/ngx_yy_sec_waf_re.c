@@ -232,7 +232,7 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
 	
         if (ctx->r->headers_in.x_forwarded_for.nelts != 0) {
             ngx_memcpy(&real_client_ip, 
-                (ngx_str_t*)(ctx->r->headers_in.x_forwarded_for.elts[0]), sizeof(ngx_str_t));
+                &((ngx_str_t*)ctx->r->headers_in.x_forwarded_for.elts)[0], sizeof(ngx_str_t));
         }
 	#endif
 #endif
