@@ -21,78 +21,34 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
     ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
 {
-    u_char    *start, *buffer, *eq, *ev;
-    ngx_uint_t len, arg_cnt, arg_len, nullbytes, buffer_size;
-    ngx_str_t  value;
+    u_char    *buffer;
+    ngx_uint_t nullbytes, arg_cnt, buffer_size;
 
-    if (rules == NULL)
+    if (rules == NULL || str == NULL)
         return NGX_ERROR;
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] data=%p", str->data);
-
-    buffer = start = str->data;
-    len =  str->len;
-    buffer_size = arg_len = 0;
-
-    if (len != 0)
-        arg_cnt = 1;
-
-    while ((len != 0) && *start) {
-        if (*start == '&') {
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] start=%p, buffer=%p", start, buffer);
-            buffer_size++;
-            *buffer++ = '$';
-            arg_cnt++;
-            start++;
-            continue;
-        }
-
-        eq = (u_char*)ngx_strchr((char*)start, '=');
-        ev = (u_char*)ngx_strchr((char*)start, '&');
-
-        if (eq) {
-            if (!ev)
-                ev = str->data + str->len;
-            arg_len = ev - start;
-            eq = ngx_strlchr(start, start+arg_len, '=');
-            if (!eq)
-                return NGX_ERROR;
-
-            eq++;
-            value.data = eq;
-            value.len = ev - eq;
-        } else {
-            break;
-        }
-
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, len=%d", &value, value.len);
-
-        nullbytes = ngx_yy_sec_waf_unescape(&value);
-
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] value=%V, nullbytes=%d", &value, nullbytes);
-
-        if (nullbytes > 0) {
-            ctx->process_body_error = 1;
-            ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_HEX_ENCODING");
-            return NGX_ERROR;
-        }
-
-        buffer = ngx_cpymem(buffer, value.data, value.len);
-        buffer_size += value.len;
-
-        start += arg_len;
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] unparsed_str: %V", str);
+    
+    nullbytes = ngx_yy_sec_waf_unescape(str);
+    
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] str: %V", str);
+    
+    if (nullbytes > 0) {
+        ctx->process_body_error = 1;
+        ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_HEX_ENCODING");
+        return NGX_ERROR;
     }
-
-    str->len = buffer_size;
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] str=%V", str);
 
     /* convert \r\n to blank as '  ' to improve the format of error log */
     buffer = str->data;
+    buffer_size = str->len;
+    arg_cnt = 0;
 
     while (buffer_size-- > 0) {
         if (*buffer == '\n' || *buffer == '\r')
             *buffer = ' ';
+        if (*buffer == '&')
+            arg_cnt++;
         buffer++;
     }
 
