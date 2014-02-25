@@ -39,74 +39,14 @@ ngx_yy_sec_waf_unescape(ngx_str_t *str) {
 }
 
 /* 
-** @description: This function is called to convert ngx_int_t into u_char.
-** @para: ngx_pool_t *p
-** @para: ngx_int_t n
-** @return: u_char*
-*/
-
-u_char*
-ngx_yy_sec_waf_itoa(ngx_pool_t *p, ngx_int_t n)
-{
-    const int BUFFER_SIZE = sizeof(ngx_int_t) * 3 + 2;
-    u_char *buf = ngx_palloc(p, BUFFER_SIZE);
-	u_char *start = buf + BUFFER_SIZE - 1;
-    int negative;
-
-    if (n < 0) {
-        negative = 1;
-        n = -n;
-    } else {
-        negative = 0;
-    }
-
-    *start = 0;
-    do {
-        *--start = '0' + (n % 10);
-        n /= 10;
-    } while (n);
-
-    if (negative) {
-        *--start = '-';
-    }
-
-    return start;
-}
-
-/* 
-** @description: This function is called to convert ngx_uint_t into u_char.
-** @para: ngx_pool_t *p
-** @para: ngx_uint_t n
-** @return: u_char*
-*/
-
-u_char*
-ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n)
-{
-    const int BUFFER_SIZE = sizeof(ngx_uint_t) * 3 + 2;
-    u_char *buf = ngx_palloc(p, BUFFER_SIZE);
-	u_char *start = buf + BUFFER_SIZE - 1;
-
-    *start = 0;
-    do {
-        *--start = '0' + (n % 10);
-        n /= 10;
-    } while (n);
-
-    return start;
-}
-
-/* 
 ** @description: This function is called to get local addr.
-** @para: ngx_connection_t *c
 ** @para: const char *eth
 ** @para: ngx_str_t *s
 ** @return: ngx_int_t
 */
 
 ngx_int_t
-ngx_local_addr(ngx_connection_t *c,
-    const char *eth, ngx_str_t *s)
+ngx_local_addr(const char *eth, ngx_str_t *s)
 {
     struct sockaddr_in  *addr4;
     struct sockaddr_in6 *addr6;
@@ -134,6 +74,7 @@ ngx_local_addr(ngx_connection_t *c,
                 (void *)&(addr4->sin_addr), s->data, s->len)) {
 
                 freeifaddrs(ifap0);
+                ifap0 = NULL;
                 return NGX_OK;
             } else {
                 break;
@@ -166,6 +107,7 @@ ngx_local_addr(ngx_connection_t *c,
                 (void *)&(addr6->sin6_addr), s->data, s->len)) {
 
                 freeifaddrs(ifap0);
+                ifap0 = NULL;
                 return NGX_OK;
             }
             else {
@@ -176,8 +118,8 @@ ngx_local_addr(ngx_connection_t *c,
     }
 
     freeifaddrs(ifap0);
+    ifap0 = NULL;
 
     return NGX_ERROR;
 }
-
 

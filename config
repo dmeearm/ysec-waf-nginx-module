@@ -1,18 +1,9 @@
 ngx_addon_name=ngx_http_yy_sec_waf_module
-#HTTP_MODULES="$HTTP_MODULES ngx_http_yy_sec_waf_module"
-HTTP_AUX_FILTER_MODULES="$HTTP_AUX_FILTER_MODULES $ngx_addon_name"
+HTTP_MODULES="$HTTP_MODULES ngx_http_yy_sec_waf_module"
 
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/src/ngx_yy_sec_waf_module.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_utils.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_body_processor.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_conn_processor.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_re.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_re_operator.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_re_variable.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_re_tfn.c 
-								$ngx_addon_dir/src/ngx_yy_sec_waf_re_action.c"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_yy_sec_waf_module.c 
+								$ngx_addon_dir/ngx_yy_sec_waf_parser.c 
+								$ngx_addon_dir/ngx_yy_sec_waf_utils.c 
+								$ngx_addon_dir/ngx_yy_sec_waf_processor.c"
 
-
-
-NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_addon_dir/src/ngx_yy_sec_waf.h \
-								$ngx_addon_dir/src/ngx_yy_sec_waf_re.h"
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_addon_dir/ngx_yy_sec_waf.h"

@@ -54,22 +54,6 @@ without-debug:
 		--with-pcre-jit \
 		--with-debug && make
 
-mac:
-	cd $(shell pwd)/../../../../ && $(shell chmod +x $(shell pwd)/../../../../../3rdParty/*/configure) \
-		./configure --prefix=/usr/local/nginx \
-		--add-module=$(shell pwd) \
-		--add-module=$(shell pwd)/../echo-nginx-module \
-		--without-mail_pop3_module \
-		--without-mail_smtp_module \
-		--without-mail_imap_module \
-		--without-http_uwsgi_module \
-		--without-http_scgi_module \
-		--with-http_stub_status_module \
-		--with-pcre-opt="-g -O2" \
-        --with-pcre-jit \
-		--with-debug && make
-
-
 with-pcre-lib:
 	cd $(shell pwd)/../../../../ && ./configure --add-module=$(shell pwd) --without-mail_pop3_module --without-mail_smtp_module --without-mail_imap_module --without-http_uwsgi_module --without-http_scgi_module --with-http_stub_status_module --with-http_ssl_module --with-pcre --with-pcre-jit && make -j6
 nginx:
@@ -83,4 +67,3 @@ test:
 
 install:
 	cd $(shell pwd)/../../../../ && make install
-	cp conf/yy_sec_waf.conf /usr/local/nginx/conf/yy_sec_waf.conf
