@@ -66,4 +66,4 @@ test:
 	prove -r t/*.t
 
 install:
-	cd $(shell pwd)/../../../../ && make install
+	cd $(shell pwd)/../../../../ && make install && cp ${shell pwd}/yy_sec_waf.conf /usr/local/nginx/conf/yy_sec_waf.conf

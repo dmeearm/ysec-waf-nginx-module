@@ -320,9 +320,11 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
                 if (ctx->matched_string) {
                     ngx_str_t empty = ngx_string(" ");
                     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                        "[ysec_waf] %s, id=%d , total processed=%d, total matched=%d, total blocked=%d, matched string=%V, client_ip: %V, server_ip: %V",
+                        "[ysec_waf] %s, id: %d,"
+                        " matched: %uA, blocked: %uA,"
+                        " var: %V, client_ip: %V, server_ip: %V",
                         ctx->block? "block": "alert",
-                        ctx->rule_id, cf->request_processed, cf->request_matched, cf->request_blocked, ctx->matched_string? ctx->matched_string: &empty,
+                        ctx->rule_id, cf->request_matched, cf->request_blocked, ctx->matched_string? ctx->matched_string: &empty,
                         real_client_ip, &s );
                 }
 
