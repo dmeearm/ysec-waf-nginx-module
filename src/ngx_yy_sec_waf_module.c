@@ -25,6 +25,8 @@ extern char * ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
+extern ngx_int_t
+ngx_local_addr(ngx_connection_t *c,const char *eth, ngx_str_t *s);
 
 extern ngx_int_t ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf);
 extern ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
@@ -511,6 +513,35 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ctx->r = r;
     ctx->cf = cf;
     ctx->pool = r->pool;
+
+    ctx->server_ip.len = NGX_SOCKADDR_STRLEN;
+    ctx->server_ip.data = ngx_palloc(r->pool, NGX_SOCKADDR_STRLEN);
+
+	if (ctx->server_ip.data == NULL) {
+        return NULL;
+	}
+
+    ngx_memzero(ctx->server_ip.data, NGX_SOCKADDR_STRLEN);
+
+    if (ngx_local_addr(ctx->r->connection, "eth0", &ctx->server_ip) != NGX_OK) {
+        return NULL;
+    }
+    
+    ctx->real_client_ip = &ctx->r->connection->addr_text;
+	
+#ifdef NGX_HTTP_X_FORWARDED_FOR
+
+    #if (nginx_version < 1003014)
+        if (ctx->r->headers_in.x_forwarded_for != NULL) {
+            ctx->real_client_ip = &ctx->r->headers_in.x_forwarded_for->value;
+        }
+    #else
+        
+        if (ctx->r->headers_in.x_forwarded_for.nelts != 0) {
+            ctx->real_client_ip = &((ngx_table_elt_t**)(ctx->r->headers_in.x_forwarded_for.elts))[0]->value;
+        }
+    #endif
+#endif
 
     //yy_sec_waf_re_cache_init_rbtree(&ctx->cache_rbtree, &ctx->cache_sentinel);
 

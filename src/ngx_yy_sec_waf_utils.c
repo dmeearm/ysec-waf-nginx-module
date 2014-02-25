@@ -7,6 +7,7 @@
 */
 
 #include "ngx_yy_sec_waf.h"
+#include <ifaddrs.h>
 
 /* 
 ** @description: Unescape routine.
@@ -94,4 +95,89 @@ ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n)
 
     return start;
 }
+
+/* 
+** @description: This function is called to get local addr.
+** @para: ngx_connection_t *c
+** @para: const char *eth
+** @para: ngx_str_t *s
+** @return: ngx_int_t
+*/
+
+ngx_int_t
+ngx_local_addr(ngx_connection_t *c,
+    const char *eth, ngx_str_t *s)
+{
+    struct sockaddr_in  *addr4;
+    struct sockaddr_in6 *addr6;
+    struct ifaddrs      *ifap0, *ifap;
+
+    if (eth == NULL || s == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (getifaddrs(&ifap0)) {
+        return NGX_ERROR;
+    }
+
+    for (ifap = ifap0; ifap != NULL; ifap = ifap->ifa_next) {
+        if(ngx_strcmp(eth, ifap->ifa_name)!=0)
+            continue;
+
+        if(ifap->ifa_addr == NULL)
+			continue;
+
+        if(AF_INET == ifap->ifa_addr->sa_family) {
+            addr4 = (struct sockaddr_in *)ifap->ifa_addr;
+
+            if(s->len != ngx_inet_ntop(ifap->ifa_addr->sa_family,
+                (void *)&(addr4->sin_addr), s->data, s->len)) {
+
+                freeifaddrs(ifap0);
+                return NGX_OK;
+            } else {
+                break;
+            }
+        }
+        else if(AF_INET6 == ifap->ifa_addr->sa_family) {
+            addr6 = (struct sockaddr_in6*) ifap->ifa_addr;
+
+            if(IN6_IS_ADDR_MULTICAST(&addr6->sin6_addr)) {
+                continue;
+            }
+
+            if(IN6_IS_ADDR_LINKLOCAL(&addr6->sin6_addr)) {
+                continue;
+            }
+
+            if(IN6_IS_ADDR_LOOPBACK(&addr6->sin6_addr)) {
+                continue;
+            }
+
+            if(IN6_IS_ADDR_UNSPECIFIED(&addr6->sin6_addr)) {
+                continue;
+            }
+
+            if(IN6_IS_ADDR_SITELOCAL(&addr6->sin6_addr)) {
+                continue;
+            }
+
+            if(s->len != ngx_inet_ntop(ifap->ifa_addr->sa_family,
+                (void *)&(addr6->sin6_addr), s->data, s->len)) {
+
+                freeifaddrs(ifap0);
+                return NGX_OK;
+            }
+            else {
+                break;
+            }
+
+        } 
+    }
+
+    freeifaddrs(ifap0);
+
+    return NGX_ERROR;
+}
+
 

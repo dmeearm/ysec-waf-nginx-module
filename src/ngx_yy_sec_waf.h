@@ -89,7 +89,8 @@ typedef struct {
     ngx_str_t  post_args;
     ngx_uint_t post_args_count;
 
-    ngx_str_t  real_client_ip;
+    ngx_str_t  *real_client_ip;
+    ngx_str_t  server_ip;
 
     u_char     *boundary;
     ngx_uint_t  boundary_len;
