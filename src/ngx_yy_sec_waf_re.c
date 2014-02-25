@@ -216,7 +216,7 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
         ngx_log_error(NGX_LOG_ERR, ctx->r->connection->log, 0,
             "[ysec_waf] %s, id: %d, conn_per_ip: %ud,"
             " matched: %uA, blocked: %uA, allowed: %uA, alerted: %uA,"
-            " msg: %V, client_ip: %V, server_ip: %V",
+            " var: %V, client_ip: %V, server_ip: %V",
             (ctx->action_level & ACTION_BLOCK)? "block":
             (ctx->action_level & ACTION_ALLOW)? "allow": "alert",
             ctx->rule_id, ctx->conn_per_ip,
