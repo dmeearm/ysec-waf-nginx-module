@@ -27,12 +27,8 @@ ngx_http_yy_sec_waf_process_spliturl(ngx_http_request_t *r,
     if (str == NULL)
         return NGX_ERROR;
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] unparsed_str: %V", str);
-    
     nullbytes = ngx_yy_sec_waf_unescape(str);
-    
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] str: %V", str);
-    
+
     if (nullbytes > 0) {
         ctx->process_body_error = 1;
         ngx_str_set(&ctx->process_body_error_msg, "UNCOMMON_HEX_ENCODING");
@@ -195,8 +191,6 @@ static ngx_int_t
 ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
     ngx_str_t *full_body, ngx_http_request_ctx_t *ctx)
 {
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_multipart Entry");
-
     u_char *boundary, *line_start, *line_end, *body_end, *p;
     ngx_uint_t boundary_len, idx, nullbytes;
     ngx_str_t name, filename, content_type, *tmp;
@@ -394,8 +388,6 @@ ngx_http_yy_sec_waf_process_multipart(ngx_http_request_t *r,
             idx += ngx_strlen("\r\n");
     }
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_multipart Exit");
-
     return NGX_OK;
 }
 
@@ -411,8 +403,6 @@ ngx_int_t
 ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx)
 {
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_body Entry");
-
     u_char      *src;
     ngx_chain_t *bb;
     ngx_str_t   *full_body;
@@ -471,8 +461,6 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
 
         ngx_http_yy_sec_waf_process_spliturl(r, full_body, ctx);
     }
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_body Exit");
 
     return NGX_OK;
 }
