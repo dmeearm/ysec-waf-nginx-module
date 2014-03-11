@@ -469,12 +469,6 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         /* X-WWW-FORM-URLENCODED */
         ctx->post_args_len = full_body->len;
 
-        if (full_body->len > cf->max_post_args_len) {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] post method with more than %d args.",
-                                                                      cf->max_post_args_len);
-            return NGX_ERROR;
-        }
-
         ngx_http_yy_sec_waf_process_spliturl_rules(r, full_body, cf->request_header_rules, ctx);
     }
 

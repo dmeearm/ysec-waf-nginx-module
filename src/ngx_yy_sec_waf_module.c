@@ -68,13 +68,6 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
       offsetof(ngx_http_yy_sec_waf_loc_conf_t, body_processor),
       NULL },
 
-    { ngx_string("max_post_args_len"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_num_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_yy_sec_waf_loc_conf_t, max_post_args_len),
-      NULL },
-
     { ngx_string("basic_rule"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
       ngx_http_yy_sec_waf_re_read_conf,
@@ -141,7 +134,6 @@ ngx_http_yy_sec_waf_create_loc_conf(ngx_conf_t *cf)
     }
 
     conf->enabled = NGX_CONF_UNSET;
-    conf->max_post_args_len = NGX_CONF_UNSET_UINT;
     conf->conn_processor = NGX_CONF_UNSET;
     conf->body_processor = NGX_CONF_UNSET;
 
@@ -181,8 +173,6 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->conn_processor, prev->conn_processor, 0);
 
     ngx_conf_merge_value(conf->body_processor, prev->body_processor, 1);
-
-    ngx_conf_merge_uint_value(conf->max_post_args_len, prev->max_post_args_len, 2048);
 
     return NGX_CONF_OK;
 }

@@ -68,7 +68,6 @@ typedef struct {
 
     ngx_shm_zone_t *shm_zone;
     ngx_str_t *denied_url;
-    ngx_uint_t max_post_args_len;
     ngx_flag_t enabled;
     ngx_flag_t conn_processor;
     ngx_flag_t body_processor;
