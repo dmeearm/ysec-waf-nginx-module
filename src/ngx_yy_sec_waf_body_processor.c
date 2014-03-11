@@ -9,7 +9,7 @@
 #include "ngx_yy_sec_waf.h"
 
 /*
-** @description: This function is called to process spliturl rules of the request.
+** @description: This function is called to process spliturl of the request.
 ** @para: ngx_http_request_t *r
 ** @para: ngx_str_t *str
 ** @para: ngx_array_t *rules
@@ -18,13 +18,13 @@
 */
 
 static ngx_int_t
-ngx_http_yy_sec_waf_process_spliturl_rules(ngx_http_request_t *r,
-    ngx_str_t *str, ngx_array_t *rules, ngx_http_request_ctx_t *ctx)
+ngx_http_yy_sec_waf_process_spliturl(ngx_http_request_t *r,
+    ngx_str_t *str, ngx_http_request_ctx_t *ctx)
 {
     u_char    *buffer;
     ngx_uint_t nullbytes, arg_cnt, buffer_size;
 
-    if (rules == NULL || str == NULL)
+    if (str == NULL)
         return NGX_ERROR;
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] unparsed_str: %V", str);
@@ -469,7 +469,7 @@ ngx_http_yy_sec_waf_process_body(ngx_http_request_t *r,
         /* X-WWW-FORM-URLENCODED */
         ctx->post_args_len = full_body->len;
 
-        ngx_http_yy_sec_waf_process_spliturl_rules(r, full_body, cf->request_header_rules, ctx);
+        ngx_http_yy_sec_waf_process_spliturl(r, full_body, ctx);
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] ngx_http_yy_sec_waf_process_body Exit");
