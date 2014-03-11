@@ -46,25 +46,6 @@ ngx_atomic_t   *request_logged  = &request_logged0;
 static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
 static ngx_http_output_body_filter_pt    ngx_http_next_body_filter;
 
-static ngx_conf_bitmask_t ngx_yy_sec_waf_method_bitmask[] = {
-    { ngx_string("GET"), NGX_HTTP_GET },
-    { ngx_string("HEAD"), NGX_HTTP_HEAD },
-    { ngx_string("POST"), NGX_HTTP_POST },
-    { ngx_string("PUT"), NGX_HTTP_PUT },
-    { ngx_string("DELETE"), NGX_HTTP_DELETE },
-    { ngx_string("MKCOL"), NGX_HTTP_MKCOL },
-    { ngx_string("COPY"), NGX_HTTP_COPY },
-    { ngx_string("MOVE"), NGX_HTTP_MOVE },
-    { ngx_string("OPTIONS"), NGX_HTTP_OPTIONS },
-    { ngx_string("PROPFIND"), NGX_HTTP_PROPFIND },
-    { ngx_string("PROPPATCH"), NGX_HTTP_PROPPATCH },
-    { ngx_string("LOCK"), NGX_HTTP_LOCK },
-    { ngx_string("UNLOCK"), NGX_HTTP_UNLOCK },
-    { ngx_string("PATCH"), NGX_HTTP_PATCH },
-    { ngx_string("TRACE"), NGX_HTTP_TRACE },
-    { ngx_null_string, 0 }
-};
-
 static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
     { ngx_string("yy_sec_waf"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
@@ -93,13 +74,6 @@ static ngx_command_t  ngx_http_yy_sec_waf_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_yy_sec_waf_loc_conf_t, max_post_args_len),
       NULL },
-
-    { ngx_string("http_method"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
-      ngx_conf_set_bitmask_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_yy_sec_waf_loc_conf_t, http_method),
-      &ngx_yy_sec_waf_method_bitmask },
 
     { ngx_string("basic_rule"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
@@ -207,8 +181,6 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->conn_processor, prev->conn_processor, 0);
 
     ngx_conf_merge_value(conf->body_processor, prev->body_processor, 1);
-
-    ngx_conf_merge_bitmask_value(conf->http_method, prev->http_method, 0);
 
     ngx_conf_merge_uint_value(conf->max_post_args_len, prev->max_post_args_len, 2048);
 
@@ -374,12 +346,6 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
     if (!cf->enabled) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] yy sec waf isn't enabled.");
         return NGX_DECLINED;
-    }
-
-    if (cf->http_method)
-        if (!(r->method & cf->http_method)) {
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] http method isn't supported.");
-            return NGX_HTTP_NOT_ALLOWED;
     }
 
     ctx = ngx_http_yy_sec_waf_create_ctx(r, cf);
