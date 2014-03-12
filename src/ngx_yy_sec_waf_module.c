@@ -25,8 +25,6 @@ extern char * ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 extern ngx_int_t ngx_http_yy_sec_waf_process_request(ngx_http_request_t *r,
     ngx_http_yy_sec_waf_loc_conf_t *cf, ngx_http_request_ctx_t *ctx);
-extern ngx_int_t
-ngx_local_addr(ngx_connection_t *c,const char *eth, ngx_str_t *s);
 
 extern ngx_int_t ngx_http_yy_sec_waf_re_create(ngx_conf_t *cf);
 extern ngx_int_t yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
@@ -167,6 +165,8 @@ ngx_http_yy_sec_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->denied_url = prev->denied_url;
     if (conf->shm_zone == NULL)
         conf->shm_zone = prev->shm_zone;
+    if (conf->server_ip.len == 0)
+        conf->server_ip = prev->server_ip;
 
     ngx_conf_merge_value(conf->enabled, prev->enabled, 1);
 
@@ -383,6 +383,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             }
         }
 
+        //Temply hack here, should hook the input filters.
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
         if (ctx->matched || rc == NGX_ERROR) {
             return rc;
@@ -470,19 +471,8 @@ ngx_http_yy_sec_waf_create_ctx(ngx_http_request_t *r,
     ctx->cf = cf;
     ctx->pool = r->pool;
 
-    ctx->server_ip.len = NGX_SOCKADDR_STRLEN;
-    ctx->server_ip.data = ngx_palloc(r->pool, NGX_SOCKADDR_STRLEN);
+    ngx_memcpy(&ctx->server_ip, &cf->server_ip, sizeof(ngx_str_t));
 
-	if (ctx->server_ip.data == NULL) {
-        return NULL;
-	}
-
-    ngx_memzero(ctx->server_ip.data, NGX_SOCKADDR_STRLEN);
-
-    if (ngx_local_addr(ctx->r->connection, "eth0", &ctx->server_ip) != NGX_OK) {
-        return NULL;
-    }
-    
     ctx->real_client_ip = &ctx->r->connection->addr_text;
 	
 #ifdef NGX_HTTP_X_FORWARDED_FOR

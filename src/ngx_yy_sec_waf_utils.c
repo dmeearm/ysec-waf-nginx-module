@@ -105,8 +105,7 @@ ngx_yy_sec_waf_uitoa(ngx_pool_t *p, ngx_uint_t n)
 */
 
 ngx_int_t
-ngx_local_addr(ngx_connection_t *c,
-    const char *eth, ngx_str_t *s)
+ngx_local_addr(const char *eth, ngx_str_t *s)
 {
     struct sockaddr_in  *addr4;
     struct sockaddr_in6 *addr6;

@@ -67,6 +67,7 @@ typedef struct {
     ngx_array_t *response_body_rules;
 
     ngx_shm_zone_t *shm_zone;
+    ngx_str_t  server_ip;
     ngx_str_t *denied_url;
     ngx_flag_t enabled;
     ngx_flag_t conn_processor;

@@ -10,6 +10,8 @@
 
 static yy_sec_waf_re_t *rule_engine;
 
+extern ngx_int_t ngx_local_addr(const char *eth, ngx_str_t *s);
+
 /*
 ** @description: This function is called to resolve tfns in hash.
 ** @para: ngx_str_t *action
@@ -638,13 +640,24 @@ ngx_http_yy_sec_waf_re_read_conf(ngx_conf_t *cf,
         ngx_memcpy(rule_p, &rule, sizeof(ngx_http_yy_sec_waf_rule_t));
     }
 
-    // Create shm zone for conn processor.
+    // Temply hack here, create shm zone for conn processor and get server_ip.
     if (p->conn_processor) {
         shm_zone = ngx_http_yy_sec_waf_create_shm_zone(cf);
 
         if (shm_zone != NULL) {
             p->shm_zone = shm_zone;
         }
+    }
+
+    p->server_ip.len = NGX_SOCKADDR_STRLEN;
+    p->server_ip.data = ngx_pcalloc(cf->pool, NGX_SOCKADDR_STRLEN);
+    
+    if (p->server_ip.data == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_local_addr("eth0", &p->server_ip) != NGX_OK) {
+        return NGX_CONF_ERROR;
     }
 
     return NGX_CONF_OK;
