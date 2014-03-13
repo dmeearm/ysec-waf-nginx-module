@@ -21,7 +21,7 @@ __DATA__
 eh yo
 --- config
 location / {
-  include /usr/local/nginx/conf/yy_sec_waf.conf;
+    basic_rule MULTIPART_FILENAME "regex:\.jsp|\.php|\.html|\.htm|\.\./" "msg:uncommon filename" phase:2 id:1201 gids:UPLOAD  lev:LOG|BLOCK;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
@@ -60,7 +60,7 @@ buibuibuib
 eh yo
 --- config
 location / {
-  include /usr/local/nginx/conf/yy_sec_waf.conf;
+    basic_rule MULTIPART_FILENAME "regex:\.jsp|\.php|\.html|\.htm|\.\./" "msg:uncommon filename" phase:2 id:1201 gids:UPLOAD  lev:LOG|BLOCK;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
@@ -97,7 +97,7 @@ Content-Type: application/x-httpd-php\r
 eh yo
 --- config
 location / {
-  include /usr/local/nginx/conf/yy_sec_waf.conf;
+    basic_rule MULTIPART_FILENAME "regex:\.jsp|\.php|\.html|\.htm|\.\./" "msg:uncommon filename" phase:2 id:1201 gids:UPLOAD  lev:LOG|BLOCK;
     root $TEST_NGINX_SERVROOT/html/;
     index index.html index.htm;
     error_page 405 = $uri;
