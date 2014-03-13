@@ -2,4 +2,5 @@
 *.git
 */servroot
 *core
+*conf
 
