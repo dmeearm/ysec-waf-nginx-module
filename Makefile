@@ -9,6 +9,7 @@ with-debug:
 		--add-module=$(shell pwd)/../../../../../3rdParty/memc-nginx-module \
 		--add-module=$(shell pwd)/../../../../../3rdParty/srcache-nginx-module \
 		--add-module=$(shell pwd)/../../../../../3rdParty/redis2-nginx-module \
+		--add-module=$(shell pwd)/../../../../../3rdParty/lua-nginx-module \
 		--add-module=$(shell pwd)/../../../../../3rdParty/ngx_http_redis \
 		--add-module=$(shell pwd)/../../../../../3rdParty/nginx-http-concat \
 		--with-zlib=$(shell pwd)/../../../../../3rdParty/zlib-1.2.8 \
