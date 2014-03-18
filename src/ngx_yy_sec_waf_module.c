@@ -217,7 +217,7 @@ ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
         return ngx_http_next_header_filter(r);
     }
 
-    if (!ctx->process_done) {
+    if (ctx && !ctx->process_done) {
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_HEADER_PHASE);
         if (rc != NGX_DECLINED) {
             return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
@@ -255,7 +255,7 @@ ngx_http_yy_sec_waf_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
-    if (!ctx->process_done) {
+    if (ctx && !ctx->process_done) {
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_BODY_PHASE);
         if (rc != NGX_DECLINED) {
             return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
