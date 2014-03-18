@@ -224,7 +224,7 @@ yy_sec_waf_re_perform_interception(ngx_http_request_ctx_t *ctx)
             ctx->rule_id, ctx->conn_per_ip,
             *request_matched, *request_blocked, *request_allowed, *request_logged,
             ctx->process_body_error? &ctx->process_body_error_msg: &ctx->var,
-            ctx->real_client_ip, &ctx->server_ip);
+            ctx->real_client_ip, ctx->server_ip);
     }
 
     if (ctx->action_level & ACTION_BLOCK)
