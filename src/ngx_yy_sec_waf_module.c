@@ -418,10 +418,10 @@ ngx_http_yy_sec_waf_request_body_handler(ngx_http_request_t *r)
 
     if (ctx != NULL) {
         ctx->read_body_done = 1;
-        r->main->count--;
+        r->count--;
     
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "[ysec_waf] req body post read, c:%ud", r->main->count);
+                       "[ysec_waf] req body post read, c:%ud", r->count);
     
         if (ctx->waiting_more_body) {
             ctx->waiting_more_body = 0;
