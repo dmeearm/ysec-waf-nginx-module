@@ -217,8 +217,9 @@ ngx_http_yy_sec_waf_header_filter(ngx_http_request_t *r)
         return ngx_http_next_header_filter(r);
     }
 
-    if (ctx && !ctx->process_done) {
+    if (r != r->main && ctx && !ctx->process_done) {
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_HEADER_PHASE);
+
         if (rc != NGX_DECLINED) {
             return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
         }
@@ -255,7 +256,7 @@ ngx_http_yy_sec_waf_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
-    if (ctx && !ctx->process_done) {
+    if (r == r->main && ctx && !ctx->process_done) {
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, RESPONSE_BODY_PHASE);
         if (rc != NGX_DECLINED) {
             return ngx_http_filter_finalize_request(r, &ngx_http_yy_sec_waf_module, rc);
@@ -371,7 +372,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
         ctx->read_body_done = 1;
     }
 
-    if (ctx && ctx->read_body_done && !ctx->process_done) {
+    if (r == r->main && ctx && ctx->read_body_done && !ctx->process_done) {
         rc = NGX_DECLINED;
 
         if (cf->body_processor 
@@ -385,12 +386,12 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
 
         //Temply hack here, should hook the input filters.
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_HEADER_PHASE);
-        if (ctx->matched || rc == NGX_ERROR) {
+        if (rc != NGX_DECLINED) {
             return rc;
         }
 
         rc = yy_sec_waf_re_process_normal_rules(r, cf, ctx, REQUEST_BODY_PHASE);
-        if (ctx->matched || rc == NGX_ERROR) {
+        if (rc != NGX_DECLINED) {
             return rc;
         }
 

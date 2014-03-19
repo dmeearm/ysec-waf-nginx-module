@@ -248,8 +248,6 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     ngx_int_t                   rc, *var_index_p;
     ngx_uint_t                  i;
     ngx_http_variable_value_t  *vv;
-    re_tfns_metadata           *tfn_metadata;
-    ngx_int_t                   is_tfn_done;
 
 	if (rule == NULL)
 		return NGX_AGAIN;
@@ -262,23 +260,6 @@ yy_sec_waf_re_process_rule(ngx_http_request_t *r,
     
         if (vv == NULL || vv->not_found || vv->len == 0) {
             return NGX_AGAIN;
-        }
-
-
-        is_tfn_done = 0;
-
-        if ((rule->tfn_metadata != NULL) && !is_tfn_done) {
-
-            tfn_metadata = (re_tfns_metadata*) rule->tfn_metadata;
-            rc = tfn_metadata->execute(vv);
-            if (rc == NGX_ERROR) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[ysec_waf] failed to execute tfns");
-                return NGX_ERROR;
-            }
-
-            if (vv->no_cacheable == 0) {
-                is_tfn_done = 1;
-            }
         }
 
         ctx->var.data = vv->data;
@@ -347,7 +328,8 @@ yy_sec_waf_re_process_normal_rules(ngx_http_request_t *r,
 
     ctx->phase = phase;
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[ysec_waf] phase: %d", phase);
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+        "[ysec_waf] phase: %d, rule_num: %d", phase, rule_num);
 
     for (i=0; i < rule_num; i++) {
 
