@@ -365,7 +365,7 @@ ngx_http_yy_sec_waf_handler(ngx_http_request_t *r)
             ctx->waiting_more_body = 1;
             return NGX_DONE;
         } else if (rc >= NGX_HTTP_SPECIAL_RESPONSE || rc == NGX_ERROR) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"[ysec_waf] ngx_http_read_client_request_body failed");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"[ysec_waf] ngx_http_read_client_request_body failed: %d", rc);
             return rc;
         }
     } else {
